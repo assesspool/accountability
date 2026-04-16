@@ -427,7 +427,80 @@
   }
   .del-btn:hover { color: var(--err); }
 
-  @media (max-width: 720px) {
+  /* ── Subject record bar ── */
+  #record-bar {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  #record-bar .rec-status {
+    font-family: var(--mono);
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--muted); flex: 1;
+    min-width: 160px;
+  }
+  #record-bar .rec-status.loaded { color: var(--ok); }
+  #record-bar .rec-status.unsaved { color: var(--warn); }
+
+  /* ── Cycle history panel ── */
+  #history-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+  }
+  #history-panel h2 {
+    font-family: var(--mono);
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .history-table {
+    width: 100%; border-collapse: collapse;
+    font-family: var(--mono); font-size: 11px;
+    overflow-x: auto; display: block;
+  }
+  .history-table th {
+    font-size: 9px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted); padding: 5px 8px;
+    border-bottom: 1px solid var(--border);
+    text-align: left; white-space: nowrap;
+  }
+  .history-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text); white-space: nowrap;
+  }
+  .history-table tr:last-child td { border-bottom: none; }
+  .history-table tr:hover td { background: var(--surface2); }
+  .history-table td.comp-ok  { color: var(--ok); font-weight: 600; }
+  .history-table td.comp-warn{ color: var(--warn); font-weight: 600; }
+  .history-table td.comp-err { color: var(--err); font-weight: 600; }
+  .history-table td.has-flag { color: var(--warn); }
+  .history-table .eq { font-size: 9px; color: var(--muted); margin-left: 2px; }
+
+  /* Transcription helper row */
+  .transcription-hint {
+    font-family: var(--mono);
+    font-size: 10px; color: var(--accent);
+    padding: 8px; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 3px;
+    margin-top: 8px; line-height: 1.8;
+    white-space: pre-wrap;
+  }
     .grid-3, .grid-4, .grid-5 { grid-template-columns: 1fr 1fr; }
     .result-grid { grid-template-columns: 1fr 1fr; }
     .bottle-row { grid-template-columns: 24px 1fr 110px 80px; }
@@ -442,6 +515,15 @@
   <h1>Drug Accountability Log</h1>
   <span>Participant Dosing &amp; Compliance · Cycle Reconciliation</span>
 </header>
+
+<!-- ══ SUBJECT RECORD BAR ════════════════════════════ -->
+<div id="record-bar">
+  <span class="rec-status" id="rec-status">No subject record loaded — fill header and save after each cycle</span>
+  <input type="file" id="file-input" accept=".json" style="display:none;" onchange="loadRecord(event)">
+  <button class="btn btn-secondary" onclick="document.getElementById('file-input').click()">Load Record</button>
+  <button class="btn btn-secondary" onclick="saveRecord()">Save Record</button>
+  <button class="btn btn-secondary" onclick="appendCycle()" id="btn-append" style="display:none;">+ Save This Cycle</button>
+</div>
 
 <!-- ══ STUDY / PARTICIPANT HEADER ════════════════════ -->
 <section>
@@ -637,8 +719,40 @@
 
 <div class="action-row">
   <button class="btn btn-primary"   onclick="calculate()">Recalculate</button>
-  <button class="btn btn-secondary" onclick="clearAll()">Clear</button>
+  <button class="btn btn-secondary" onclick="clearCycle()">Clear Cycle</button>
   <button class="btn btn-secondary" onclick="printSummary()">Print / Export</button>
+  <button class="btn btn-secondary" onclick="exportCSV()">Export CSV</button>
+</div>
+
+<!-- ══ CYCLE HISTORY ══════════════════════════════════ -->
+<div id="history-panel" style="display:none;">
+  <h2>
+    Cycle History
+    <span id="history-subject" style="color:var(--accent2);font-weight:400;"></span>
+  </h2>
+  <div style="overflow-x:auto;">
+    <table class="history-table" id="history-table">
+      <thead>
+        <tr>
+          <th>Cycle</th>
+          <th>Date Dispensed</th>
+          <th>Qty Dispensed</th>
+          <th>#Pills/day</th>
+          <th>Date Returned</th>
+          <th>#Days Taken</th>
+          <th>Qty Returned</th>
+          <th>Qty Expected Return</th>
+          <th>A (Disp−Ret)</th>
+          <th>B (Days×Pills)</th>
+          <th>% Compliance</th>
+          <th>Qty Missed</th>
+          <th>Comments / Flags</th>
+        </tr>
+      </thead>
+      <tbody id="history-body"></tbody>
+    </table>
+  </div>
+  <div id="transcription-hint" class="transcription-hint" style="display:none;"></div>
 </div>
 
 <script>
@@ -677,7 +791,17 @@ const ACTION_OPTIONS = [
 
 let adjIdx = 0;
 
-window.onload = () => { syncBottleRows(); calculate(); };
+window.onload = () => {
+  syncBottleRows();
+  calculate();
+  // Mark record dirty on any input change
+  document.addEventListener('input', () => {
+    if (currentRecord) setRecordStatus('unsaved');
+  });
+  document.addEventListener('change', () => {
+    if (currentRecord) setRecordStatus('unsaved');
+  });
+};
 
 // ── UI toggles ───────────────────────────────────────
 function toggleDoseMod() {
@@ -1289,8 +1413,8 @@ function setSub(id, v) { document.getElementById(id).textContent = v; }
 function col(id, c)    { document.getElementById(id).style.color = c; }
 function val(id)       { const el = document.getElementById(id); return el ? (el.value || el.textContent || '').trim() : ''; }
 
-function clearAll() {
-  if (!confirm('Clear all entries?')) return;
+function clearCycle() {
+  if (!confirm('Clear current cycle entries? Loaded record history is preserved.')) return;
   document.querySelectorAll('input:not([readonly])').forEach(el => { el.value = ''; });
   document.getElementById('bottlesDispensed').value = 3;
   document.getElementById('windowDays').value = 3;
@@ -1301,6 +1425,8 @@ function clearAll() {
   document.getElementById('adj-rows').innerHTML = '';
   document.getElementById('ecrf-panel').style.display = 'none';
   adjIdx = 0;
+  // Re-populate header from loaded record if present
+  if (currentRecord) setHeaderFields(currentRecord);
   syncBottleRows();
   calculate();
 }
@@ -1371,6 +1497,400 @@ function printSummary() {
   const w = window.open('', '_blank');
   w.document.write(`<pre style="font-family:monospace;font-size:12px;padding:24px;background:#fff;color:#000;">${out}</pre>`);
   w.document.close(); w.print();
+}
+
+// ── Subject Record Management ─────────────────────────
+const RECORD_VERSION = 1;
+let currentRecord = null; // the loaded JSON record
+let recordDirty = false;  // unsaved changes flag
+
+function getHeaderFields() {
+  return {
+    protocol:     val('protocolNum'),
+    pi:           val('piName'),
+    subject:      val('subjectId'),
+    initials:     val('subjectInitials'),
+    initDose:     val('initDose'),
+    initRegimen:  val('initRegimen'),
+  };
+}
+
+function setHeaderFields(h) {
+  if (!h) return;
+  setInputVal('protocolNum',    h.protocol    || '');
+  setInputVal('piName',         h.pi          || '');
+  setInputVal('subjectId',      h.subject     || '');
+  setInputVal('subjectInitials',h.initials    || '');
+  setInputVal('initDose',       h.initDose    || '');
+  setInputVal('initRegimen',    h.initRegimen || '');
+}
+
+function setInputVal(id, v) {
+  const el = document.getElementById(id);
+  if (el) el.value = v;
+}
+
+function snapshotCycle() {
+  // Capture full current cycle state into a plain object
+  const doseKey = document.getElementById('dispDose').value;
+  const dose = DOSE_MAP[doseKey];
+  const pillsPerDay = dose.ppd * dose.dpd;
+
+  // Diary days
+  const s = document.getElementById('dosingStart').value;
+  const e = document.getElementById('dosingEnd').value;
+  let days = null;
+  if (s && e) {
+    const d = Math.round((new Date(e) - new Date(s)) / 86400000) + 1;
+    if (d > 0) days = d;
+  }
+
+  // Adjustments
+  const adjustments = [];
+  let denomAdj = 0;
+  document.querySelectorAll('.adj-card[data-adj]').forEach(card => {
+    const typeVal   = card.querySelector('.adj-type').value;
+    const typeInfo  = ADJ_TYPES.find(t => t.v === typeVal) || ADJ_TYPES[0];
+    const pills     = parseInt(card.querySelector('.adj-pills').value) || 0;
+    const impact    = card.querySelector('.adj-impact-sel').value;
+    const action    = card.querySelector('.adj-action').value;
+    const note      = card.querySelector('.adj-note').value;
+    const eventDate = card.querySelector('.adj-date').value;
+    const restartEl = card.querySelector('.adj-restart');
+    const restart   = restartEl ? restartEl.value : '';
+    const restartDoseSel = card.querySelector('.adj-restart-dose');
+    const restartDoseKey = restartDoseSel ? restartDoseSel.value : '';
+    const restartActionSel = card.querySelector('.adj-restart-action');
+    const restartAction = restartActionSel ? restartActionSel.value : '';
+
+    if (typeInfo.isHold && eventDate && restart) {
+      const holdDays = Math.round((new Date(restart) - new Date(eventDate)) / 86400000);
+      if (holdDays > 0) denomAdj += holdDays * pillsPerDay;
+    } else if (impact === 'denom') {
+      denomAdj += pills;
+    }
+
+    adjustments.push({ type:typeVal, date:eventDate, pills, impact, action,
+                        restart, restartDoseKey, restartAction, note });
+  });
+
+  // Bottles
+  const bottles = [];
+  document.querySelectorAll('.bottle-row[data-idx]').forEach(r => {
+    bottles.push({
+      id:     r.querySelector('.b-id').value || 'UNK',
+      status: r.querySelector('.b-status').value,
+      dispDate: r.querySelector('.b-dispdate').value,
+    });
+  });
+
+  const n = parseInt(document.getElementById('bottlesDispensed').value) || 0;
+  const totalDisp = n * BOTTLE_SIZE;
+  const rawExpected = days !== null ? days * pillsPerDay : null;
+  const expectedTaken = rawExpected !== null ? Math.max(0, rawExpected - denomAdj) : null;
+  const retStr = document.getElementById('actualReturn').value;
+  const actualReturn = retStr !== '' ? parseInt(retStr) : null;
+  const actualTaken  = actualReturn !== null ? totalDisp - actualReturn : null;
+  const delta = (actualTaken !== null && expectedTaken !== null) ? actualTaken - expectedTaken : null;
+  const compPct = (actualTaken !== null && expectedTaken !== null && expectedTaken > 0)
+    ? Math.round((actualTaken / expectedTaken) * 100) : null;
+  const quantityMissed = delta !== null && delta < 0 ? Math.abs(delta) : 0;
+
+  // Flags for comments column
+  const openHolds = adjustments.filter(a => {
+    const ti = ADJ_TYPES.find(t => t.v === a.type);
+    return ti && ti.isHold && !a.restart;
+  });
+  const flagNotes = [];
+  if (openHolds.length) flagNotes.push(`OPEN HOLD (${openHolds.length})`);
+  if (document.getElementById('doseModified').value === 'yes') {
+    flagNotes.push(`Dose mod: ${val('newRegimen')||val('newDose')||'see record'}`);
+  }
+  const discrepancy = val('discrepancyReason');
+  if (discrepancy) flagNotes.push(discrepancy);
+
+  return {
+    cycle:          parseInt(document.getElementById('cycleNum')?.value) || null,
+    visit:          val('visitName'),
+    visitDate:      document.getElementById('visitDate').value,
+    prevVisitDate:  document.getElementById('prevVisitDate').value,
+    windowDays:     parseInt(document.getElementById('windowDays').value) || 3,
+    doseKey,
+    pillsPerDay,
+    bottleCount:    n,
+    bottles,
+    dispDateTime:   document.getElementById('dispDateTime').value,
+    dosingStart:    s,
+    dosingEnd:      e,
+    days,
+    actualReturn,
+    bottlesReturned: parseInt(document.getElementById('bottlesReturned').value) || null,
+    returnDate:     document.getElementById('returnDate').value,
+    diaryReviewed:  document.getElementById('diaryReviewed').value,
+    doseModified:   document.getElementById('doseModified').value,
+    newDose:        val('newDose'),
+    newRegimen:     val('newRegimen'),
+    modReason:      val('modReason'),
+    staffDispense:  val('staffDispense'),
+    staffAccount:   val('staffAccount'),
+    discrepancyReason: val('discrepancyReason'),
+    adjustments,
+    computed: {
+      totalDisp, rawExpected, denomAdj, expectedTaken,
+      actualTaken, delta, compPct, quantityMissed,
+    },
+    flags: flagNotes,
+  };
+}
+
+function saveRecord() {
+  // Build or update record from current header + current cycle snapshot
+  const header = getHeaderFields();
+  if (!header.subject) {
+    alert('Please enter a Subject ID before saving.');
+    return;
+  }
+
+  if (!currentRecord) {
+    currentRecord = {
+      version: RECORD_VERSION,
+      ...header,
+      cycles: [],
+    };
+  } else {
+    // Update header fields in case they changed
+    Object.assign(currentRecord, header);
+  }
+
+  const json = JSON.stringify(currentRecord, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const protocol = (currentRecord.protocol || 'noprot').replace(/[^a-z0-9]/gi, '-');
+  const subject  = (currentRecord.subject  || 'nosubj').replace(/[^a-z0-9]/gi, '-');
+  a.href     = url;
+  a.download = `${subject}_${protocol}_acct.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  setRecordStatus('saved');
+}
+
+function appendCycle() {
+  if (!currentRecord) {
+    alert('Load or save a subject record first.');
+    return;
+  }
+  const snap = snapshotCycle();
+  if (!snap.visitDate && !snap.visit) {
+    alert('Please enter at least a visit label or date before saving this cycle.');
+    return;
+  }
+
+  // Check if cycle already exists — offer to update
+  const existing = currentRecord.cycles.findIndex(
+    c => c.cycle === snap.cycle && snap.cycle !== null
+      || c.visit === snap.visit && snap.visit
+  );
+  if (existing >= 0) {
+    if (!confirm(`Cycle "${snap.visit || snap.cycle}" already exists in this record. Replace it?`)) return;
+    currentRecord.cycles[existing] = snap;
+  } else {
+    currentRecord.cycles.push(snap);
+  }
+
+  // Sort cycles by cycle number then visit date
+  currentRecord.cycles.sort((a, b) => {
+    if (a.cycle !== null && b.cycle !== null) return a.cycle - b.cycle;
+    return (a.visitDate || '').localeCompare(b.visitDate || '');
+  });
+
+  renderHistory();
+  setRecordStatus('unsaved');
+  recordDirty = true;
+
+  // Auto-trigger save download
+  saveRecord();
+}
+
+function loadRecord(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const rec = JSON.parse(e.target.result);
+      if (!rec.version || !rec.subject) throw new Error('Invalid record format');
+      currentRecord = rec;
+      setHeaderFields(rec);
+      renderHistory();
+      setRecordStatus('loaded');
+      document.getElementById('btn-append').style.display = '';
+      // Show cycle number hint
+      if (rec.cycles && rec.cycles.length > 0) {
+        const lastCycle = rec.cycles[rec.cycles.length - 1].cycle;
+        if (lastCycle) {
+          const nextEl = document.getElementById('cycleNum');
+          if (nextEl && !nextEl.value) nextEl.value = lastCycle + 1;
+        }
+      }
+    } catch(err) {
+      alert('Could not load record: ' + err.message);
+    }
+    // Reset file input so same file can be reloaded
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function setRecordStatus(state) {
+  const el = document.getElementById('rec-status');
+  const appendBtn = document.getElementById('btn-append');
+  if (state === 'loaded') {
+    const name = `${currentRecord.subject}${currentRecord.protocol?' — '+currentRecord.protocol:''}`;
+    el.textContent = `Record loaded: ${name} (${currentRecord.cycles.length} cycle${currentRecord.cycles.length!==1?'s':''})`;
+    el.className = 'rec-status loaded';
+    appendBtn.style.display = '';
+  } else if (state === 'unsaved') {
+    el.textContent = '● Unsaved changes — click Save Record';
+    el.className = 'rec-status unsaved';
+  } else if (state === 'saved') {
+    const name = `${currentRecord.subject}${currentRecord.protocol?' — '+currentRecord.protocol:''}`;
+    el.textContent = `Saved: ${name} (${currentRecord.cycles.length} cycle${currentRecord.cycles.length!==1?'s':''})`;
+    el.className = 'rec-status loaded';
+    recordDirty = false;
+    appendBtn.style.display = '';
+  }
+}
+
+function renderHistory() {
+  if (!currentRecord || !currentRecord.cycles.length) {
+    document.getElementById('history-panel').style.display = 'none';
+    return;
+  }
+
+  document.getElementById('history-panel').style.display = '';
+  document.getElementById('history-subject').textContent =
+    `${currentRecord.subject}${currentRecord.initials?' ('+currentRecord.initials+')':''}${currentRecord.protocol?' — '+currentRecord.protocol:''}`;
+
+  const tbody = document.getElementById('history-body');
+  tbody.innerHTML = '';
+
+  currentRecord.cycles.forEach(c => {
+    const dose = DOSE_MAP[c.doseKey] || {};
+    const ppd  = c.pillsPerDay || (dose.ppd * dose.dpd) || '?';
+    const comp = c.computed;
+    const compCls = !comp?.compPct ? '' :
+      comp.compPct >= 80 ? 'comp-ok' : comp.compPct >= 60 ? 'comp-warn' : 'comp-err';
+
+    // A = Dispensed − Returned; B = Days × Pills/day
+    const A = comp?.actualTaken  ?? '—';
+    const B = comp?.expectedTaken ?? '—';
+    const Aeq = (comp?.totalDisp != null && comp?.actualReturn != null)
+      ? `${comp.totalDisp}−${comp.actualReturn}=${A}` : '';
+    const Beq = (c.days != null && ppd)
+      ? `${c.days}×${ppd}=${B}` : '';
+
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${c.visit || c.cycle || '—'}</td>
+      <td>${c.visitDate ? fmtDate(c.visitDate) : '—'}</td>
+      <td>${comp?.totalDisp ?? '—'}</td>
+      <td>${ppd}</td>
+      <td>${c.returnDate ? fmtDate(c.returnDate) : '—'}</td>
+      <td>${c.days ?? '—'}</td>
+      <td>${comp?.actualReturn ?? '—'}</td>
+      <td>${comp?.totalDisp != null && comp?.expectedTaken != null ? comp.totalDisp - comp.expectedTaken : '—'}</td>
+      <td>${A}<span class="eq">${Aeq?'  ('+Aeq+')':''}</span></td>
+      <td>${B}<span class="eq">${Beq?'  ('+Beq+')':''}</span></td>
+      <td class="${compCls}">${comp?.compPct != null ? comp.compPct+'%' : '—'}</td>
+      <td>${comp?.quantityMissed ?? '—'}</td>
+      <td class="${c.flags?.length ? 'has-flag' : ''}">${c.flags?.join('; ') || ''}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Transcription hint — last cycle row in SmartPhrase column order
+  buildTranscriptionHint();
+}
+
+function buildTranscriptionHint() {
+  if (!currentRecord?.cycles.length) return;
+  const c = currentRecord.cycles[currentRecord.cycles.length - 1];
+  const dose = DOSE_MAP[c.doseKey] || {};
+  const ppd = c.pillsPerDay || (dose.ppd * dose.dpd) || '?';
+  const comp = c.computed;
+  const A = comp?.actualTaken ?? '?';
+  const B = comp?.expectedTaken ?? '?';
+  const Aeq = comp?.totalDisp != null && comp?.actualReturn != null
+    ? `${comp.totalDisp}−${comp.actualReturn}=${A}` : A;
+  const Beq = c.days != null ? `${c.days}×${ppd}=${B}` : B;
+  const expRet = comp?.totalDisp != null && comp?.expectedTaken != null
+    ? comp.totalDisp - comp.expectedTaken : '?';
+
+  const hint = document.getElementById('transcription-hint');
+  hint.style.display = '';
+  hint.textContent =
+`TRANSCRIPTION AID — ${c.visit || 'Cycle '+c.cycle} (copy to SmartPhrase row left→right)
+Cycle            : ${c.visit || c.cycle || '—'}
+Date Dispensed   : ${c.visitDate ? fmtDate(c.visitDate) : '—'}
+Qty Dispensed    : ${comp?.totalDisp ?? '—'}
+# Pills/day      : ${ppd}
+Date Returned    : ${c.returnDate ? fmtDate(c.returnDate) : '—'}
+# Days to Taken  : ${c.days ?? '—'}
+Qty Returned     : ${comp?.actualReturn ?? '—'}
+Qty Expected     : ${expRet}
+A (Disp−Ret)     : ${Aeq}
+B (Days×Pills)   : ${Beq}
+% Compliance     : ${comp?.compPct != null ? comp.compPct+'%  ('+A+'/'+B+'×100)' : '—'}
+Qty Missed       : ${comp?.quantityMissed ?? '—'}
+Comments         : ${c.flags?.join('; ') || c.discrepancyReason || ''}`;
+}
+
+function exportCSV() {
+  const cycles = currentRecord?.cycles;
+  if (!cycles?.length) {
+    alert('No cycle history to export. Load a subject record or save cycles first.');
+    return;
+  }
+  const headers = [
+    'Subject','Protocol','Visit','Cycle','Visit Date','Prev Visit Date',
+    'Dose','Pills/Day','Bottles Dispensed','Qty Dispensed',
+    'Dosing Start','Dosing End','Days on Drug',
+    'Date Returned','Bottles Returned','Qty Returned',
+    'Qty Expected Return','A (Taken)','B (Expected Taken)',
+    'Delta','% Compliance','Qty Missed',
+    'Dose Modified','New Dose','Staff Dispense','Staff Account',
+    'Diary Reviewed','Discrepancy Reason','Flags'
+  ];
+
+  const rows = cycles.map(c => {
+    const dose = DOSE_MAP[c.doseKey] || {};
+    const ppd  = c.pillsPerDay || (dose.ppd * dose.dpd) || '';
+    const comp = c.computed || {};
+    const expRet = comp.totalDisp != null && comp.expectedTaken != null
+      ? comp.totalDisp - comp.expectedTaken : '';
+    return [
+      currentRecord.subject, currentRecord.protocol,
+      c.visit, c.cycle, c.visitDate, c.prevVisitDate,
+      dose.label || c.doseKey, ppd, c.bottleCount, comp.totalDisp ?? '',
+      c.dosingStart, c.dosingEnd, c.days ?? '',
+      c.returnDate, c.bottlesReturned ?? '', comp.actualReturn ?? '',
+      expRet, comp.actualTaken ?? '', comp.expectedTaken ?? '',
+      comp.delta ?? '', comp.compPct != null ? comp.compPct+'%' : '',
+      comp.quantityMissed ?? '',
+      c.doseModified, c.newDose || '', c.staffDispense, c.staffAccount,
+      c.diaryReviewed, c.discrepancyReason,
+      (c.flags || []).join('; '),
+    ].map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(',');
+  });
+
+  const csv  = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const subj = (currentRecord.subject || 'export').replace(/[^a-z0-9]/gi,'-');
+  a.href = url; a.download = `${subj}_accountability.csv`;
+  a.click(); URL.revokeObjectURL(url);
 }
 
 // ── Theme toggle ─────────────────────────────────────
