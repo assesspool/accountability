@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Drug Accountability Log</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f1117" id="theme-color-meta">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Drug Acct">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #171b25;
+    --surface2: #1e2333;
+    --border: #2a3045;
+    --accent: #4fc3f7;
+    --accent2: #81d4fa;
+    --warn: #ffb74d;
+    --ok: #66bb6a;
+    --err: #ef5350;
+    --text: #e0e6f0;
+    --muted: #6b7a99;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  body.light {
+    --bg: #f5f7fa;
+    --surface: #ffffff;
+    --surface2: #eef1f6;
+    --border: #d0d7e3;
+    --accent: #0277bd;
+    --accent2: #0288d1;
+    --warn: #e65100;
+    --ok: #2e7d32;
+    --err: #c62828;
+    --text: #1a2035;
+    --muted: #5a6a85;
+  }
+
+  /* Theme toggle */
+  #theme-toggle {
+    position: fixed;
+    top: 12px; right: 12px;
+    z-index: 999;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    transition: all 0.2s;
+  }
+  #theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    line-height: 1.5;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 12px;
+    margin-bottom: 20px;
+  }
+  header h1 {
+    font-family: var(--mono);
+    font-size: 14px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--accent);
+  }
+  header span {
+    font-family: var(--mono);
+    font-size: 11px; color: var(--muted); letter-spacing: 0.05em;
+  }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; }
+  .grid-5 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1fr; gap: 12px; }
+
+  section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+  }
+  section h2 {
+    font-family: var(--mono);
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+
+  label {
+    display: block;
+    font-size: 10px; font-weight: 500;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 4px;
+  }
+
+  input, select {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 6px 9px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  input[type="date"], input[type="datetime-local"] { color-scheme: dark; }
+  input[readonly] { color: var(--accent2); cursor: default; }
+  select option { background: var(--surface2); }
+  .field { margin-bottom: 10px; }
+
+  .bottle-row {
+    display: grid;
+    grid-template-columns: 28px 1fr 140px 100px 110px 20px;
+    gap: 8px;
+    align-items: center;
+    padding: 6px 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    margin-bottom: 6px;
+    font-family: var(--mono); font-size: 11px;
+  }
+  .bottle-row input, .bottle-row select { font-size: 11px; padding: 4px 7px; }
+  .bottle-row .lbl { color: var(--muted); font-size: 10px; font-weight: 600; letter-spacing: 0.08em; }
+
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--muted); display: inline-block;
+  }
+  .status-dot.returned { background: var(--ok); }
+  .status-dot.missing  { background: var(--err); }
+  .status-dot.pending  { background: var(--warn); }
+
+  .diary-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 8px;
+    align-items: center;
+    padding: 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+  }
+  .diary-hdr {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 8px;
+    padding: 0 8px 5px;
+    font-size: 9px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  #result-panel {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+  }
+  #result-panel h2 {
+    font-family: var(--mono);
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+
+  .result-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .stat-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 10px 12px;
+  }
+  .stat-box .lbl {
+    font-size: 9px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 4px;
+  }
+  .stat-box .val {
+    font-family: var(--mono);
+    font-size: 22px; font-weight: 600;
+    color: var(--text); line-height: 1;
+  }
+  .stat-box .sub { font-size: 10px; color: var(--muted); margin-top: 3px; }
+
+  .compliance-block {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+  }
+  .compliance-nums {
+    display: flex; gap: 28px;
+    align-items: baseline; margin-bottom: 8px;
+  }
+  .compliance-big {
+    font-family: var(--mono);
+    font-size: 40px; font-weight: 600; line-height: 1;
+  }
+  .compliance-detail {
+    font-family: var(--mono);
+    font-size: 11px; color: var(--muted); line-height: 1.9;
+    white-space: pre;
+  }
+  .compliance-bar-bg {
+    height: 6px; background: var(--border);
+    border-radius: 3px; overflow: hidden;
+  }
+  .compliance-bar-fill {
+    height: 100%; border-radius: 3px; transition: width 0.35s;
+  }
+
+  .flag-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .flag {
+    font-family: var(--mono);
+    font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
+    padding: 4px 10px; border-radius: 3px; border: 1px solid;
+  }
+  .flag.ok   { color: var(--ok);    border-color: var(--ok);    background: rgba(102,187,106,0.08); }
+  .flag.warn { color: var(--warn);  border-color: var(--warn);  background: rgba(255,183,77,0.08); }
+  .flag.err  { color: var(--err);   border-color: var(--err);   background: rgba(239,83,80,0.08); }
+  .flag.info { color: var(--accent);border-color: var(--accent);background: rgba(79,195,247,0.08); }
+
+  #notes-out {
+    font-family: var(--mono);
+    font-size: 11px; line-height: 1.7; color: var(--muted);
+    white-space: pre-wrap; padding: 10px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 3px; min-height: 32px;
+  }
+
+  .btn {
+    font-family: var(--mono);
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 8px 18px; border-radius: 3px;
+    border: none; cursor: pointer; transition: opacity 0.15s;
+  }
+  .btn:hover { opacity: 0.82; }
+  .btn-primary   { background: var(--accent); color: #0a0e14; }
+  .btn-secondary { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+  .action-row { display: flex; gap: 10px; align-items: center; margin-top: 14px; }
+
+  .sec-label {
+    font-size: 9px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--muted); margin: 12px 0 6px;
+  }
+
+  /* ── Adjustment cards ── */
+  .adj-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    position: relative;
+  }
+  .adj-card.open-hold {
+    border-color: var(--err);
+    box-shadow: 0 0 0 1px rgba(239,83,80,0.3);
+  }
+  .adj-card-header {
+    display: flex; gap: 8px; align-items: center;
+    margin-bottom: 8px; flex-wrap: wrap;
+  }
+  .adj-card-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 8px;
+  }
+  .adj-card-body.has-restart {
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+  }
+  .adj-card input, .adj-card select {
+    font-size: 11px; padding: 4px 7px;
+  }
+  .adj-card label {
+    font-size: 9px; margin-bottom: 2px;
+  }
+  .adj-type-badge {
+    font-family: var(--mono);
+    font-size: 9px; font-weight: 600; letter-spacing: 0.06em;
+    text-transform: uppercase; padding: 3px 8px;
+    border-radius: 3px; border: 1px solid;
+  }
+  .adj-type-badge.hold     { color: var(--err);    border-color: var(--err);    background: rgba(239,83,80,0.1); }
+  .adj-type-badge.denom    { color: var(--accent);  border-color: var(--accent);  background: rgba(79,195,247,0.1); }
+  .adj-type-badge.comp     { color: var(--warn);   border-color: var(--warn);   background: rgba(255,183,77,0.1); }
+  .adj-type-badge.reduction{ color: var(--warn);   border-color: var(--warn);   background: rgba(255,183,77,0.1); }
+  .open-hold-badge {
+    font-family: var(--mono);
+    font-size: 9px; font-weight: 600; letter-spacing: 0.06em;
+    text-transform: uppercase; padding: 3px 8px;
+    border-radius: 3px; border: 1px solid var(--err);
+    color: var(--err); background: rgba(239,83,80,0.1);
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50%      { opacity: 0.5; }
+  }
+  .adj-del {
+    position: absolute; top: 8px; right: 8px;
+    background: transparent; border: none;
+    color: var(--muted); cursor: pointer; font-size: 15px; line-height: 1;
+  }
+  .adj-del:hover { color: var(--err); }
+
+  /* ── eCRF action panel ── */
+  #ecrf-panel {
+    background: var(--surface);
+    border: 1px solid var(--warn);
+    border-radius: 4px;
+    padding: 14px 16px;
+  }
+  .ecrf-action-item {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+  .ecrf-action-item .step-num {
+    display: inline-block;
+    width: 20px; height: 20px; line-height: 20px;
+    text-align: center; border-radius: 50%;
+    background: var(--surface2); border: 1px solid var(--border);
+    font-size: 9px; font-weight: 600; color: var(--muted);
+    margin-right: 8px; flex-shrink: 0;
+  }
+  .ecrf-action-item .step-hdr {
+    display: flex; align-items: center;
+    margin-bottom: 6px;
+  }
+  .ecrf-action-item .step-title {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .ecrf-action-item .step-title.close { color: var(--warn); }
+  .ecrf-action-item .step-title.open  { color: var(--err); }
+  .ecrf-action-item .step-title.restart { color: var(--ok); }
+  .ecrf-action-item .step-title.info  { color: var(--accent); }
+  .ecrf-logline {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px; margin-top: 6px;
+  }
+  .ecrf-field {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 2px; padding: 4px 7px;
+  }
+  .ecrf-field .ef-lbl {
+    font-size: 8px; font-weight: 600; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 2px;
+  }
+  .ecrf-field .ef-val {
+    font-size: 11px; color: var(--text);
+    font-weight: 500;
+  }
+  .ecrf-field .ef-val.empty { color: var(--muted); font-style: italic; }
+  .ecrf-urgent {
+    font-size: 9px; color: var(--err); font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    margin-left: auto; padding: 2px 6px;
+    border: 1px solid var(--err); border-radius: 2px;
+  }
+  .btn-add {
+    background: transparent;
+    border: 1px dashed var(--border);
+    color: var(--muted);
+    font-size: 10px; padding: 5px 12px; margin-top: 4px;
+    font-family: var(--mono); font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    border-radius: 3px; cursor: pointer;
+  }
+  .btn-add:hover { border-color: var(--accent); color: var(--accent); }
+  .del-btn {
+    background: transparent; border: none;
+    color: var(--muted); cursor: pointer;
+    font-size: 15px; padding: 0; line-height: 1;
+  }
+  .del-btn:hover { color: var(--err); }
+
+  @media (max-width: 720px) {
+    .grid-3, .grid-4, .grid-5 { grid-template-columns: 1fr 1fr; }
+    .result-grid { grid-template-columns: 1fr 1fr; }
+    .bottle-row { grid-template-columns: 24px 1fr 110px 80px; }
+    .diary-hdr, .diary-row { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<button id="theme-toggle" onclick="toggleTheme()">☀ Light</button>
+
+<header>
+  <h1>Drug Accountability Log</h1>
+  <span>Participant Dosing &amp; Compliance · Cycle Reconciliation</span>
+</header>
+
+<!-- ══ STUDY / PARTICIPANT HEADER ════════════════════ -->
+<section>
+  <h2>Study / Participant Header</h2>
+  <div class="grid-4">
+    <div class="field"><label>Protocol #</label><input type="text" id="protocolNum" placeholder="e.g. ABC-2023-01"></div>
+    <div class="field"><label>PI</label><input type="text" id="piName" placeholder="Last name"></div>
+    <div class="field"><label>Participant #</label><input type="text" id="subjectId" placeholder="e.g. 001-001"></div>
+    <div class="field"><label>Participant Initials</label><input type="text" id="subjectInitials" placeholder="e.g. J.D." maxlength="6"></div>
+  </div>
+  <div class="grid-4">
+    <div class="field"><label>Initial Total Daily Dose</label><input type="text" id="initDose" placeholder="e.g. 300 mg"></div>
+    <div class="field"><label>Initial Dosing Regimen</label><input type="text" id="initRegimen" placeholder="e.g. 150 mg BID"></div>
+    <div class="field"><label>Visit Label</label><input type="text" id="visitName" placeholder="e.g. C3D1"></div>
+    <div class="field"><label>Visit Date</label><input type="date" id="visitDate" onchange="calculate()"></div>
+  </div>
+  <div class="grid-5">
+    <div class="field"><label>Prev. Visit Date</label><input type="date" id="prevVisitDate" onchange="calculate()"></div>
+    <div class="field"><label>Visit Window (±days)</label><input type="number" id="windowDays" value="3" min="0" max="14" onchange="calculate()"></div>
+    <div class="field"><label>Staff — Dispensing IP</label><input type="text" id="staffDispense" placeholder="Initials"></div>
+    <div class="field"><label>Staff — IP Accountability</label><input type="text" id="staffAccount" placeholder="Initials"></div>
+    <div class="field"><label>Dose Modification?</label>
+      <select id="doseModified" onchange="toggleDoseMod()">
+        <option value="no">No</option>
+        <option value="yes">Yes — see below</option>
+      </select>
+    </div>
+  </div>
+  <div id="dose-mod-row" style="display:none; margin-top:6px;">
+    <div class="grid-3">
+      <div class="field"><label>New Total Daily Dose</label><input type="text" id="newDose" placeholder="e.g. 200 mg"></div>
+      <div class="field"><label>New Dosing Regimen</label><input type="text" id="newRegimen" placeholder="e.g. 100 mg BID"></div>
+      <div class="field"><label>Reason for Modification</label><input type="text" id="modReason" placeholder="e.g. Grade 2 fatigue (AE)"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ DISPENSATION ═══════════════════════════════════ -->
+<section>
+  <h2>Dispensation — This Cycle</h2>
+  <div class="grid-4" style="margin-bottom:10px;">
+    <div class="field">
+      <label>Dose / Regimen Dispensed</label>
+      <select id="dispDose" onchange="calculate()">
+        <option value="150">150 mg BID — 3 pills × 2 = 6/day</option>
+        <option value="100">100 mg BID — 2 pills × 2 = 4/day</option>
+        <option value="50_bid">50 mg BID — 1 pill × 2 = 2/day</option>
+        <option value="150_qd">150 mg QD — 3 pills × 1 = 3/day</option>
+        <option value="100_qd">100 mg QD — 2 pills × 1 = 2/day</option>
+        <option value="50_qd">50 mg QD — 1 pill × 1 = 1/day</option>
+      </select>
+    </div>
+    <div class="field"><label># Bottles / Vials Dispensed</label>
+      <input type="number" id="bottlesDispensed" min="1" max="10" value="3" onchange="syncBottleRows(); calculate();">
+    </div>
+    <div class="field"><label>Total Pill Qty Delivered</label>
+      <input type="number" id="totalDispensed" readonly>
+    </div>
+    <div class="field"><label>Date &amp; Time Dispensed to Subject</label>
+      <input type="datetime-local" id="dispDateTime">
+    </div>
+  </div>
+  <div class="sec-label">Bottle / Vial IDs &amp; Return Status</div>
+  <div id="bottle-rows"></div>
+</section>
+
+<!-- ══ PILL DIARY ════════════════════════════════════ -->
+<section>
+  <h2>Pill Diary — Dosing Start / End</h2>
+  <div style="font-size:10px;color:var(--muted);margin-bottom:8px;">
+    From subject diary. Dose assumed uniform for this cycle (no mid-cycle splits).
+  </div>
+  <div class="diary-hdr">
+    <span>Dosing Start Date</span>
+    <span>Dosing End Date</span>
+    <span>Days on Drug</span>
+    <span>Expected Pills Taken</span>
+  </div>
+  <div class="diary-row">
+    <input type="date" id="dosingStart" onchange="calculate()">
+    <input type="date" id="dosingEnd"   onchange="calculate()">
+    <input type="text" id="calcDays"     readonly placeholder="—">
+    <input type="text" id="calcExpected" readonly placeholder="—">
+  </div>
+</section>
+
+<!-- ══ RETURN ════════════════════════════════════════ -->
+<section>
+  <h2>Drug Return &amp; Diary Review</h2>
+  <div class="grid-4">
+    <div class="field"><label>Date Study Drug Returned</label>
+      <input type="date" id="returnDate">
+    </div>
+    <div class="field"><label># Bottles / Vials Returned</label>
+      <input type="number" id="bottlesReturned" min="0" oninput="calculate()">
+    </div>
+    <div class="field"><label>Total # Pills / Vials Returned</label>
+      <input type="number" id="actualReturn" min="0" placeholder="Enter pill count" oninput="calculate()">
+    </div>
+    <div class="field"><label>Drug Diary Returned &amp; Reviewed?</label>
+      <select id="diaryReviewed" onchange="calculate()">
+        <option value="yes">Yes</option>
+        <option value="no">No</option>
+        <option value="partial">Partial / Incomplete</option>
+        <option value="na">N/A</option>
+      </select>
+    </div>
+  </div>
+  <div class="field">
+    <label>Reasons for IP Discrepancies</label>
+    <input type="text" id="discrepancyReason" placeholder="Leave blank if none">
+  </div>
+</section>
+
+<!-- ══ DOSE ADJUSTMENTS ══════════════════════════════ -->
+<section>
+  <h2>Dose Adjustments &amp; Interruptions</h2>
+  <div style="font-size:10px;color:var(--muted);margin-bottom:10px;">
+    One row per event. Interruptions (holds) require a restart date to close the eCRF logline sequence.
+    <span style="color:var(--accent);">Denominator adjust</span> = excused from compliance.
+    <span style="color:var(--err);">Compliance miss</span> = counts against compliance %.
+    <span style="color:var(--err);font-weight:600;">Open holds are flagged until restart date is entered.</span>
+  </div>
+  <div id="adj-rows"></div>
+  <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+    <button class="btn-add" onclick="addAdj()">+ Add Event</button>
+    <button class="btn-add" onclick="addAdjPreset('late_dispense')">+ Late Dispense / Day 1 Partial</button>
+    <button class="btn-add" onclick="addAdjPreset('hold')">+ Drug Hold</button>
+    <button class="btn-add" onclick="addAdjPreset('reduction')">+ Dose Reduction</button>
+  </div>
+</section>
+
+<!-- ══ PENDING eCRF ACTIONS ══════════════════════════ -->
+<div id="ecrf-panel" style="display:none; margin-bottom:12px;">
+  <div style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--warn);margin-bottom:8px;display:flex;align-items:center;gap:8px;">
+    <span style="width:8px;height:8px;border-radius:50%;background:var(--warn);display:inline-block;"></span>
+    Pending eCRF Actions
+  </div>
+  <div id="ecrf-actions"></div>
+</div>
+
+<!-- ══ RECONCILIATION SUMMARY ════════════════════════ -->
+<div id="result-panel">
+  <h2>Reconciliation Summary</h2>
+
+  <!-- Form columns: Qty Delivered · Should Have Taken · Returned · Taken · Delta -->
+  <div class="result-grid">
+    <div class="stat-box">
+      <div class="lbl">Total Qty Delivered</div>
+      <div class="val" id="r-dispensed">—</div>
+      <div class="sub" id="r-dispensed-sub"></div>
+    </div>
+    <div class="stat-box">
+      <div class="lbl">Should Have Been Taken</div>
+      <div class="val" id="r-should">—</div>
+      <div class="sub" id="r-should-sub"></div>
+    </div>
+    <div class="stat-box">
+      <div class="lbl">Total # Returned</div>
+      <div class="val" id="r-returned">—</div>
+      <div class="sub" id="r-returned-sub"></div>
+    </div>
+    <div class="stat-box">
+      <div class="lbl">Total # Taken</div>
+      <div class="val" id="r-taken">—</div>
+      <div class="sub">Delivered − Returned</div>
+    </div>
+    <div class="stat-box">
+      <div class="lbl">Delta (Taken − Expected)</div>
+      <div class="val" id="r-delta">—</div>
+      <div class="sub" id="r-delta-sub"></div>
+    </div>
+  </div>
+
+  <!-- Compliance — prominent block -->
+  <div class="compliance-block">
+    <div style="font-size:9px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Compliance</div>
+    <div class="compliance-nums">
+      <div>
+        <div class="compliance-big" id="comp-pct" style="color:var(--muted);">—</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:3px;">pills taken ÷ expected</div>
+      </div>
+      <div class="compliance-detail" id="comp-detail">Enter dosing dates and return count to calculate.</div>
+    </div>
+    <div class="compliance-bar-bg">
+      <div class="compliance-bar-fill" id="comp-bar" style="width:0%;background:var(--ok);"></div>
+    </div>
+  </div>
+
+  <div class="flag-bar" id="flag-bar"></div>
+  <div id="notes-out"></div>
+</div>
+
+<div class="action-row">
+  <button class="btn btn-primary"   onclick="calculate()">Recalculate</button>
+  <button class="btn btn-secondary" onclick="clearAll()">Clear</button>
+  <button class="btn btn-secondary" onclick="printSummary()">Print / Export</button>
+</div>
+
+<script>
+const BOTTLE_SIZE = 60;
+const DOSE_MAP = {
+  '150':    { mg:150, ppd:3, freq:'BID', dpd:2, label:'150mg BID', freqLabel:'Twice per day (BID)' },
+  '100':    { mg:100, ppd:2, freq:'BID', dpd:2, label:'100mg BID', freqLabel:'Twice per day (BID)' },
+  '50_bid': { mg:50,  ppd:1, freq:'BID', dpd:2, label:'50mg BID',  freqLabel:'Twice per day (BID)' },
+  '150_qd': { mg:150, ppd:3, freq:'QD',  dpd:1, label:'150mg QD',  freqLabel:'Daily (QD)' },
+  '100_qd': { mg:100, ppd:2, freq:'QD',  dpd:1, label:'100mg QD',  freqLabel:'Daily (QD)' },
+  '50_qd':  { mg:50,  ppd:1, freq:'QD',  dpd:1, label:'50mg QD',   freqLabel:'Daily (QD)' },
+};
+
+const ADJ_TYPES = [
+  { v:'late_dispense', l:'Late dispense — Day 1 partial', impact:'denom', isHold:false },
+  { v:'vomited',       l:'Vomited / unable to take',      impact:'denom', isHold:false },
+  { v:'dropped',       l:'Dropped / unusable pill',        impact:'denom', isHold:false },
+  { v:'forgotten',     l:'Forgotten dose',                 impact:'comp',  isHold:false },
+  { v:'drug_held',     l:'Drug held (AE / toxicity)',      impact:'denom', isHold:true  },
+  { v:'surgery_hold',  l:'Drug held — surgery / procedure',impact:'denom', isHold:true  },
+  { v:'neutropenia',   l:'Drug held — neutropenia (ANC)',  impact:'denom', isHold:true  },
+  { v:'dlt_hold',      l:'Drug held — DLT evaluation',     impact:'denom', isHold:true  },
+  { v:'dose_reduced',  l:'Dose reduction',                 impact:'denom', isHold:false },
+  { v:'site_hold',     l:'Site-directed hold',             impact:'denom', isHold:true  },
+  { v:'other',         l:'Other (see note)',               impact:'denom', isHold:false },
+];
+
+const ACTION_OPTIONS = [
+  { v:'',               l:'— select —' },
+  { v:'Drug Held',      l:'Drug Held' },
+  { v:'Drug Restarted', l:'Drug Restarted' },
+  { v:'Dose Reduced',   l:'Dose Reduced' },
+  { v:'Dose Increased', l:'Dose Increased' },
+  { v:'Drug Withdrawn', l:'Drug Withdrawn' },
+];
+
+let adjIdx = 0;
+
+window.onload = () => { syncBottleRows(); calculate(); };
+
+// ── UI toggles ───────────────────────────────────────
+function toggleDoseMod() {
+  document.getElementById('dose-mod-row').style.display =
+    document.getElementById('doseModified').value === 'yes' ? '' : 'none';
+}
+
+// ── Bottle rows ──────────────────────────────────────
+function syncBottleRows() {
+  const n = parseInt(document.getElementById('bottlesDispensed').value) || 1;
+  const container = document.getElementById('bottle-rows');
+  const saved = {};
+  container.querySelectorAll('.bottle-row[data-idx]').forEach(r => {
+    saved[r.dataset.idx] = {
+      id: r.querySelector('.b-id').value,
+      lot: r.querySelector('.b-lot').value,
+      dd: r.querySelector('.b-dispdate').value,
+      st: r.querySelector('.b-status').value,
+    };
+  });
+  container.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const p = saved[i] || {};
+    const div = document.createElement('div');
+    div.className = 'bottle-row'; div.dataset.idx = i;
+    div.innerHTML = `
+      <span class="lbl">B${i+1}</span>
+      <input class="b-id"       type="text" placeholder="Bottle ID / UNK" value="${p.id||''}">
+      <select class="b-status" onchange="updateDot(this)">
+        <option value="not_returned"    ${(p.st||'not_returned')==='not_returned'   ?'selected':''}>Not Returned</option>
+        <option value="returned_partial" ${p.st==='returned_partial'?'selected':''}>Returned (partial)</option>
+        <option value="returned_empty"   ${p.st==='returned_empty'  ?'selected':''}>Returned (empty)</option>
+        <option value="lost"             ${p.st==='lost'            ?'selected':''}>Lost / Missing</option>
+      </select>
+      <input class="b-dispdate" type="date" value="${p.dd||''}" style="color-scheme:dark;">
+      <input class="b-lot"      type="text" placeholder="Lot # (opt)" value="${p.lot||''}">
+      <span style="display:flex;align-items:center;justify-content:center;">
+        <span class="status-dot pending"></span>
+      </span>`;
+    container.appendChild(div);
+    updateDot(div.querySelector('.b-status'));
+  }
+  document.getElementById('totalDispensed').value = n * BOTTLE_SIZE;
+}
+
+function updateDot(sel) {
+  const dot = sel.closest('.bottle-row').querySelector('.status-dot');
+  dot.className = 'status-dot';
+  const v = sel.value;
+  if (v === 'returned_partial' || v === 'returned_empty') dot.classList.add('returned');
+  else if (v === 'lost') dot.classList.add('missing');
+  else dot.classList.add('pending');
+}
+
+// ── Adjustment cards ─────────────────────────────────
+function addAdj(preset) {
+  adjIdx++;
+  const id = 'adj_' + adjIdx;
+  const p = preset || {};
+  const defaultType   = p.type   || 'drug_held';
+  const typeInfo      = ADJ_TYPES.find(t => t.v === defaultType) || ADJ_TYPES[0];
+  const defaultPills  = p.pills  !== undefined ? p.pills : '';
+  const defaultImpact = p.impact || typeInfo.impact;
+  const defaultNote   = p.note   || '';
+  const defaultDate   = p.date   || '';
+  const defaultAction = p.action || (typeInfo.isHold ? 'Drug Held' : '');
+  const defaultRestart= p.restart|| '';
+  const defaultRestartDose = p.restartDose || '';
+  const defaultRestartAction = p.restartAction || (typeInfo.isHold ? 'Drug Restarted' : '');
+
+  const container = document.getElementById('adj-rows');
+  const card = document.createElement('div');
+  card.className = 'adj-card'; card.dataset.adj = id;
+
+  card.innerHTML = `
+    <button class="adj-del" onclick="removeAdj(this)" title="Remove">×</button>
+    <div class="adj-card-header">
+      <select class="adj-type" style="font-size:11px;padding:4px 8px;width:auto;" onchange="onAdjTypeChange(this);calculate();">
+        ${ADJ_TYPES.map(t=>`<option value="${t.v}" ${t.v===defaultType?'selected':''}>${t.l}</option>`).join('')}
+      </select>
+      <span class="adj-type-badge ${typeInfo.isHold?'hold':defaultImpact}" id="badge_${id}">${typeInfo.isHold?'INTERRUPTION':defaultImpact==='denom'?'DENOM ADJ':'COMPLIANCE MISS'}</span>
+      <span class="open-hold-badge" id="openbadge_${id}" style="display:none;">⚠ OPEN HOLD</span>
+    </div>
+    <div class="adj-card-body" id="body_${id}">
+      <div class="field">
+        <label>Event Date</label>
+        <input type="date" class="adj-date" value="${defaultDate}" style="color-scheme:dark;" onchange="updateCard(this);calculate();">
+      </div>
+      <div class="field">
+        <label>Pills Affected</label>
+        <input type="number" class="adj-pills" min="1" value="${defaultPills}" placeholder="# pills" oninput="calculate();">
+      </div>
+      <div class="field">
+        <label>eCRF Action Taken</label>
+        <select class="adj-action" onchange="updateCard(this);calculate();">
+          ${ACTION_OPTIONS.map(a=>`<option value="${a.v}" ${a.v===defaultAction?'selected':''}>${a.l}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field">
+        <label>Impact on Compliance</label>
+        <select class="adj-impact-sel" onchange="updateCard(this);calculate();">
+          <option value="denom" ${defaultImpact==='denom'?'selected':''}>Denominator adjust (excused)</option>
+          <option value="comp"  ${defaultImpact==='comp' ?'selected':''}>Compliance miss</option>
+        </select>
+      </div>
+      ${typeInfo.isHold ? `
+      <div class="field adj-restart-field">
+        <label>Restart Date</label>
+        <input type="date" class="adj-restart" value="${defaultRestart}" style="color-scheme:dark;" onchange="updateCard(this);calculate();" placeholder="Required to close hold">
+      </div>
+      <div class="field adj-restart-field">
+        <label>Restart Dose</label>
+        <select class="adj-restart-dose" onchange="calculate();">
+          <option value="">— same dose —</option>
+          ${Object.entries(DOSE_MAP).map(([k,v])=>`<option value="${k}" ${k===defaultRestartDose?'selected':''}>${v.label}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field adj-restart-field">
+        <label>Restart eCRF Action</label>
+        <select class="adj-restart-action" onchange="calculate();">
+          ${ACTION_OPTIONS.filter(a=>a.v).map(a=>`<option value="${a.v}" ${a.v===defaultRestartAction?'selected':''}>${a.l}</option>`).join('')}
+        </select>
+      </div>` : ''}
+    </div>
+    <div class="field" style="margin-top:8px;margin-bottom:0;">
+      <label>Note / Reason (→ eCRF Reason for Action Taken)</label>
+      <input type="text" class="adj-note" value="${defaultNote}" placeholder="e.g. Grade 3 neutropenia, ANC &lt; 1.0" oninput="calculate();">
+    </div>
+  `;
+  container.appendChild(card);
+  updateCardState(card);
+  calculate();
+}
+
+function addAdjPreset(type) {
+  const dose = DOSE_MAP[document.getElementById('dispDose').value];
+  const presets = {
+    late_dispense: { type:'late_dispense', pills:dose.ppd, impact:'denom',
+      action:'', note:'Late dispense — Day 1 AM dose not taken per protocol instruction' },
+    hold: { type:'drug_held', impact:'denom', action:'Drug Held', note:'' },
+    reduction: { type:'dose_reduced', impact:'denom', action:'Dose Reduced', note:'' },
+  };
+  addAdj(presets[type] || { type });
+}
+
+function onAdjTypeChange(sel) {
+  const card = sel.closest('.adj-card');
+  const typeInfo = ADJ_TYPES.find(t => t.v === sel.value);
+  if (!typeInfo) return;
+
+  // Update action default
+  const actionSel = card.querySelector('.adj-action');
+  if (typeInfo.isHold && !actionSel.value) actionSel.value = 'Drug Held';
+
+  // Show/hide restart fields — rebuild body if hold status changed
+  const hasRestartFields = !!card.querySelector('.adj-restart-field');
+  if (typeInfo.isHold && !hasRestartFields) {
+    // Add restart fields
+    const body = card.querySelector('[id^="body_"]');
+    const restartHtml = `
+      <div class="field adj-restart-field">
+        <label>Restart Date</label>
+        <input type="date" class="adj-restart" style="color-scheme:dark;" onchange="updateCard(this);calculate();">
+      </div>
+      <div class="field adj-restart-field">
+        <label>Restart Dose</label>
+        <select class="adj-restart-dose" onchange="calculate();">
+          <option value="">— same dose —</option>
+          ${Object.entries(DOSE_MAP).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field adj-restart-field">
+        <label>Restart eCRF Action</label>
+        <select class="adj-restart-action" onchange="calculate();">
+          ${ACTION_OPTIONS.filter(a=>a.v).map(a=>`<option value="${a.v}" ${a.v==='Drug Restarted'?'selected':''}>${a.l}</option>`).join('')}
+        </select>
+      </div>`;
+    body.insertAdjacentHTML('beforeend', restartHtml);
+  } else if (!typeInfo.isHold && hasRestartFields) {
+    card.querySelectorAll('.adj-restart-field').forEach(el => el.remove());
+  }
+
+  updateCardState(card);
+  calculate();
+}
+
+function updateCard(el) { updateCardState(el.closest('.adj-card')); }
+
+function updateCardState(card) {
+  const id = card.dataset.adj;
+  const typeVal = card.querySelector('.adj-type').value;
+  const typeInfo = ADJ_TYPES.find(t => t.v === typeVal) || ADJ_TYPES[0];
+  const impactVal = card.querySelector('.adj-impact-sel').value;
+  const restartEl = card.querySelector('.adj-restart');
+  const isHold = typeInfo.isHold;
+  const hasRestart = restartEl && restartEl.value;
+  const isOpen = isHold && !hasRestart;
+
+  // Badge
+  const badge = document.getElementById('badge_' + id);
+  if (badge) {
+    badge.className = 'adj-type-badge ' + (isHold ? 'hold' : impactVal === 'denom' ? 'denom' : 'comp');
+    badge.textContent = isHold ? (hasRestart ? 'INTERRUPTION' : 'INTERRUPTION') : impactVal === 'denom' ? 'DENOM ADJ' : 'COMPLIANCE MISS';
+  }
+
+  // Open hold badge
+  const openBadge = document.getElementById('openbadge_' + id);
+  if (openBadge) {
+    openBadge.style.display = isOpen ? '' : 'none';
+    card.classList.toggle('open-hold', isOpen);
+  }
+}
+
+function removeAdj(btn) { btn.closest('.adj-card').remove(); calculate(); }
+
+// ── eCRF Actions panel ───────────────────────────────
+function buildEcrfPanel(adjCards, doseKey) {
+  const dose = DOSE_MAP[doseKey];
+  const steps = [];
+
+  adjCards.forEach((card, idx) => {
+    const typeVal  = card.querySelector('.adj-type').value;
+    const typeInfo = ADJ_TYPES.find(t => t.v === typeVal) || ADJ_TYPES[0];
+    const eventDate = card.querySelector('.adj-date').value;
+    const action    = card.querySelector('.adj-action').value;
+    const note      = card.querySelector('.adj-note').value;
+    const restartEl = card.querySelector('.adj-restart');
+    const restartDate = restartEl ? restartEl.value : '';
+    const restartDoseSel = card.querySelector('.adj-restart-dose');
+    const restartDoseKey = restartDoseSel ? (restartDoseSel.value || doseKey) : doseKey;
+    const restartDose = DOSE_MAP[restartDoseKey];
+    const restartActionSel = card.querySelector('.adj-restart-action');
+    const restartAction = restartActionSel ? restartActionSel.value : 'Drug Restarted';
+    const isOpen = typeInfo.isHold && !restartDate;
+
+    if (typeInfo.v === 'late_dispense') {
+      steps.push({
+        type: 'info',
+        title: `Event ${idx+1}: Late Dispense / Day 1 Partial`,
+        urgent: false,
+        loglines: [{
+          step: 'NOTE', color: 'info',
+          desc: 'No eCRF logline required — document in accountability log only. Verify diary reflects PM-only dosing on Day 1.',
+          fields: null,
+        }],
+      });
+      return;
+    }
+
+    if (typeInfo.isHold) {
+      const holdSteps = [];
+
+      // Step 1: Close active dosing line
+      holdSteps.push({
+        step: 'CLOSE ACTIVE LINE', color: 'close',
+        desc: 'End the current dosing logline on the last dose date before hold.',
+        fields: [
+          { l:'Dose', v: dose.mg + ' mg' },
+          { l:'Start date', v: '(existing)' },
+          { l:'End date', v: eventDate ? fmtDate(eventDate) : '⚠ ENTER' },
+          { l:'Frequency', v: dose.freqLabel },
+          { l:'Action taken', v: action || 'Drug Held' },
+          { l:'Reason', v: note || '⚠ ENTER' },
+        ],
+      });
+
+      // Step 2: Open 0-dose hold line
+      holdSteps.push({
+        step: 'OPEN HOLD LINE', color: 'open',
+        desc: 'Add new logline with dose 0 starting on first hold day.',
+        fields: [
+          { l:'Dose', v: '0 mg' },
+          { l:'Start date', v: eventDate ? fmtDate(eventDate) : '⚠ ENTER' },
+          { l:'End date', v: restartDate ? fmtDate(subtractDay(restartDate)) : '⚠ OPEN — ENTER ON RESTART' },
+          { l:'Frequency', v: dose.freqLabel },
+          { l:'Action taken', v: restartDate ? restartAction : '⚠ PENDING RESTART' },
+          { l:'Reason', v: restartDate ? (note || 'See prior line') : '⚠ PENDING' },
+        ],
+      });
+
+      // Step 3: Open restart line (only if restart date known)
+      if (restartDate) {
+        holdSteps.push({
+          step: 'OPEN RESTART LINE', color: 'restart',
+          desc: 'Add new logline at restarted dose beginning on restart date.',
+          fields: [
+            { l:'Dose', v: restartDose.mg + ' mg' },
+            { l:'Start date', v: fmtDate(restartDate) },
+            { l:'End date', v: '(leave blank — ongoing)' },
+            { l:'Frequency', v: restartDose.freqLabel },
+            { l:'Action taken', v: '—' },
+            { l:'Reason', v: '—' },
+          ],
+        });
+      } else {
+        holdSteps.push({
+          step: 'OPEN RESTART LINE — PENDING', color: 'open',
+          desc: '⚠ Restart date not yet known. Enter restart date above when confirmed to generate this logline.',
+          fields: null,
+          urgent: true,
+        });
+      }
+
+      steps.push({
+        type: isOpen ? 'open' : 'interruption',
+        title: `Event ${idx+1}: ${typeInfo.l}${isOpen ? ' — ⚠ OPEN HOLD' : ''}`,
+        urgent: isOpen,
+        loglines: holdSteps,
+      });
+
+    } else if (typeVal === 'dose_reduced') {
+      steps.push({
+        type: 'reduction',
+        title: `Event ${idx+1}: Dose Reduction`,
+        urgent: false,
+        loglines: [
+          {
+            step: 'CLOSE PRIOR DOSE LINE', color: 'close',
+            desc: 'End the logline at prior dose on the last day before reduction.',
+            fields: [
+              { l:'Dose', v: dose.mg + ' mg' },
+              { l:'Start date', v: '(existing)' },
+              { l:'End date', v: eventDate ? fmtDate(eventDate) : '⚠ ENTER' },
+              { l:'Frequency', v: dose.freqLabel },
+              { l:'Action taken', v: action || 'Dose Reduced' },
+              { l:'Reason', v: note || '⚠ ENTER' },
+            ],
+          },
+          {
+            step: 'OPEN NEW DOSE LINE', color: 'restart',
+            desc: 'Add new logline at reduced dose starting day after reduction effective.',
+            fields: [
+              { l:'Dose', v: '⚠ ENTER NEW DOSE' },
+              { l:'Start date', v: eventDate ? fmtDate(eventDate) : '⚠ ENTER' },
+              { l:'End date', v: '(leave blank — ongoing)' },
+              { l:'Frequency', v: dose.freqLabel },
+              { l:'Action taken', v: '—' },
+              { l:'Reason', v: '—' },
+            ],
+          },
+        ],
+      });
+    } else {
+      // Single-dose miss events
+      steps.push({
+        type: 'info',
+        title: `Event ${idx+1}: ${typeInfo.l}`,
+        urgent: typeInfo.impact === 'comp',
+        loglines: [{
+          step: 'MISSED DOSE LOGLINE', color: 'info',
+          desc: 'Add a single 0-dose logline for this missed dose date.',
+          fields: [
+            { l:'Dose', v: '0 mg' },
+            { l:'Start date', v: eventDate ? fmtDate(eventDate) : '⚠ ENTER' },
+            { l:'End date', v: eventDate ? fmtDate(eventDate) : '⚠ ENTER' },
+            { l:'Frequency', v: dose.freqLabel },
+            { l:'Action taken', v: action || '—' },
+            { l:'Reason', v: note || '⚠ ENTER' },
+          ],
+        }],
+      });
+    }
+  });
+
+  return steps;
+}
+
+function renderEcrfPanel(steps) {
+  const panel = document.getElementById('ecrf-panel');
+  const container = document.getElementById('ecrf-actions');
+  if (!steps.length) { panel.style.display = 'none'; return; }
+  panel.style.display = '';
+  container.innerHTML = steps.map(s => {
+    const urgentBadge = s.urgent ? `<span class="ecrf-urgent">ACTION REQUIRED</span>` : '';
+    const loglineHtml = s.loglines.map((ll, i) => {
+      const fieldsHtml = ll.fields ? `
+        <div class="ecrf-logline">
+          ${ll.fields.map(f => `
+            <div class="ecrf-field">
+              <div class="ef-lbl">${f.l}</div>
+              <div class="ef-val ${f.v.startsWith('⚠')||f.v==='(leave blank — ongoing)'||f.v==='(existing)'?'empty':''}">${f.v}</div>
+            </div>`).join('')}
+        </div>` : '';
+      return `
+        <div class="ecrf-action-item">
+          <div class="step-hdr">
+            <span class="step-num">${i+1}</span>
+            <span class="step-title ${ll.color}">${ll.step}</span>
+            ${ll.urgent ? `<span class="ecrf-urgent" style="margin-left:8px;">PENDING</span>` : ''}
+          </div>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">${ll.desc}</div>
+          ${fieldsHtml}
+        </div>`;
+    }).join('');
+    return `
+      <div style="margin-bottom:12px;">
+        <div style="font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:${s.urgent?'var(--err)':'var(--accent2)'};margin-bottom:6px;display:flex;align-items:center;gap:8px;">
+          ${s.title} ${urgentBadge}
+        </div>
+        ${loglineHtml}
+      </div>`;
+  }).join('');
+}
+
+// ── Core calculation ─────────────────────────────────
+function calculate() {
+  const n = parseInt(document.getElementById('bottlesDispensed').value) || 0;
+  const totalDisp = n * BOTTLE_SIZE;
+  document.getElementById('totalDispensed').value = totalDisp;
+
+  const doseKey = document.getElementById('dispDose').value;
+  const dose = DOSE_MAP[doseKey];
+  const pillsPerDay = dose.ppd * dose.dpd;
+
+  // Diary dates → raw expected
+  const s = document.getElementById('dosingStart').value;
+  const e = document.getElementById('dosingEnd').value;
+  let days = null, rawExpected = null;
+  if (s && e) {
+    const d = Math.round((new Date(e) - new Date(s)) / 86400000) + 1;
+    if (d > 0) { days = d; rawExpected = days * pillsPerDay; }
+  }
+  document.getElementById('calcDays').value     = days !== null ? days : '';
+  document.getElementById('calcExpected').value = rawExpected !== null ? rawExpected : '';
+
+  // Adjustment rows
+  let denomAdj = 0;
+  const adjNotes = [];
+  const openHolds = [];
+  const adjCards = [...document.querySelectorAll('.adj-card[data-adj]')];
+
+  adjCards.forEach(card => {
+    const typeVal  = card.querySelector('.adj-type').value;
+    const typeInfo = ADJ_TYPES.find(t => t.v === typeVal) || ADJ_TYPES[0];
+    const pills    = parseInt(card.querySelector('.adj-pills').value) || 0;
+    const impact   = card.querySelector('.adj-impact-sel').value;
+    const note     = card.querySelector('.adj-note').value.trim();
+    const eventDate= card.querySelector('.adj-date').value;
+    const restartEl= card.querySelector('.adj-restart');
+    const restartDate = restartEl ? restartEl.value : '';
+
+    // Update card visual state
+    updateCardState(card);
+
+    // Hold day count for denominator
+    if (typeInfo.isHold && eventDate) {
+      if (restartDate) {
+        // Days on hold = restart date − hold start date (subject didn't take drug those days)
+        const holdDays = Math.round((new Date(restartDate) - new Date(eventDate)) / 86400000);
+        if (holdDays > 0) { denomAdj += holdDays * pillsPerDay; }
+      } else {
+        // Open hold — use manually entered pills if provided, else flag
+        openHolds.push({ typeInfo, eventDate, note });
+        if (pills > 0) denomAdj += pills;
+      }
+    } else {
+      if (impact === 'denom') denomAdj += pills;
+      // comp misses stay in denominator — no action needed on denom
+    }
+
+    if (pills > 0 || typeInfo.isHold) {
+      const typeLabel = typeInfo.l;
+      adjNotes.push(`[${eventDate||'no date'}] ${typeLabel}${note?' — '+note:''}`);
+    }
+  });
+
+  // eCRF panel
+  const ecrfSteps = buildEcrfPanel(adjCards, doseKey);
+  renderEcrfPanel(ecrfSteps);
+
+  // Adjusted expected
+  const expectedTaken = rawExpected !== null ? Math.max(0, rawExpected - denomAdj) : null;
+
+  // Cycle length
+  const vd = document.getElementById('visitDate').value;
+  const pv = document.getElementById('prevVisitDate').value;
+  let cycleDays = null;
+  if (vd && pv) cycleDays = Math.round((new Date(vd) - new Date(pv)) / 86400000);
+
+  // Return / taken / delta
+  const retStr = document.getElementById('actualReturn').value;
+  const actualReturn = retStr !== '' ? parseInt(retStr) : null;
+  const actualTaken  = actualReturn !== null ? totalDisp - actualReturn : null;
+  const expectedReturn = expectedTaken !== null ? totalDisp - expectedTaken : null;
+  const delta = (actualTaken !== null && expectedTaken !== null) ? actualTaken - expectedTaken : null;
+
+  // Compliance
+  let compPct = null;
+  if (actualTaken !== null && expectedTaken !== null && expectedTaken > 0)
+    compPct = Math.round((actualTaken / expectedTaken) * 100);
+
+  // ── Stat boxes ──
+  set('r-dispensed', totalDisp || '—');
+  setSub('r-dispensed-sub', n ? `${n} bottle${n>1?'s':''} × 60` : '');
+
+  set('r-should', expectedTaken ?? '—');
+  const shouldSub = days !== null
+    ? (denomAdj > 0 ? `${days}d × ${pillsPerDay}/day − ${denomAdj} adj` : `${days}d × ${pillsPerDay}/day`)
+    : '';
+  setSub('r-should-sub', shouldSub);
+
+  set('r-returned', actualReturn ?? '—');
+  setSub('r-returned-sub', expectedReturn !== null ? `Expected: ${expectedReturn}` : '');
+  col('r-returned',
+    actualReturn !== null && expectedReturn !== null
+      ? (actualReturn === expectedReturn ? 'var(--ok)' : 'var(--err)')
+      : 'var(--text)');
+
+  set('r-taken', actualTaken ?? '—');
+  col('r-taken',
+    actualTaken !== null && expectedTaken !== null
+      ? (actualTaken === expectedTaken ? 'var(--ok)' : actualTaken < expectedTaken ? 'var(--err)' : 'var(--warn)')
+      : 'var(--text)');
+
+  if (delta !== null) {
+    const sign = delta > 0 ? '+' : '';
+    set('r-delta', `${sign}${delta}`);
+    setSub('r-delta-sub', delta === 0 ? 'Exact match' : delta > 0 ? 'Excess taken' : 'Deficit');
+    col('r-delta', delta === 0 ? 'var(--ok)' : delta > 0 ? 'var(--warn)' : 'var(--err)');
+  } else { set('r-delta','—'); setSub('r-delta-sub',''); col('r-delta','var(--text)'); }
+
+  // ── Compliance block ──
+  const pctEl = document.getElementById('comp-pct');
+  const barEl = document.getElementById('comp-bar');
+  const detEl = document.getElementById('comp-detail');
+  if (compPct !== null) {
+    const color = compPct >= 80 ? 'var(--ok)' : compPct >= 60 ? 'var(--warn)' : 'var(--err)';
+    pctEl.textContent = `${compPct}%`; pctEl.style.color = color;
+    barEl.style.width = `${Math.min(100,Math.max(0,compPct))}%`; barEl.style.background = color;
+    let det =
+      `Pills taken (delivered − returned)   : ${actualTaken ?? '?'}\n` +
+      `Pills expected (diary × dose)        : ${rawExpected ?? '?'}`;
+    if (denomAdj > 0) det += `\nDenominator adjustments (excused)    : −${denomAdj}`;
+    det += `\nAdjusted expected                    : ${expectedTaken ?? '?'}\n` +
+           `Compliance = ${actualTaken} ÷ ${expectedTaken} × 100 = ${compPct}%`;
+    detEl.textContent = det;
+  } else {
+    pctEl.textContent = '—'; pctEl.style.color = 'var(--muted)';
+    barEl.style.width = '0%';
+    detEl.textContent = 'Enter dosing dates and return count to calculate.';
+  }
+
+  // ── Flags ──
+  const flags = [], notes = [...adjNotes];
+
+  // Open hold flags — highest priority
+  openHolds.forEach(h => {
+    flags.push({c:'err', t:`OPEN HOLD — ${h.typeInfo.l.toUpperCase()}`});
+    notes.push(`Open hold (${h.typeInfo.l}) started ${h.eventDate||'unknown date'} — restart date not documented. Enter restart date in Dose Adjustments to close eCRF logline.${h.note?' Reason: '+h.note:''}`);
+  });
+
+  if (cycleDays !== null) {
+    const w = parseInt(document.getElementById('windowDays').value) || 3;
+    if      (cycleDays < 28 - w) { flags.push({c:'warn', t:`SHORT CYCLE: ${cycleDays}d`});    notes.push(`Cycle ${cycleDays}d is below the ${28-w}d window floor.`); }
+    else if (cycleDays > 28 + w) { flags.push({c:'err',  t:`LONG CYCLE: ${cycleDays}d`});     notes.push(`Cycle ${cycleDays}d exceeds the ${28+w}d window ceiling.`); }
+    else                          { flags.push({c:'ok',   t:`CYCLE LENGTH: ${cycleDays}d ✓`}); }
+  }
+
+  if (delta !== null) {
+    if      (delta === 0) flags.push({c:'ok',   t:'PILL COUNT ✓'});
+    else if (delta  >  0) { flags.push({c:'warn', t:`EXCESS TAKEN: +${delta}`});  notes.push(`Subject took ${delta} more pills than expected. Verify diary.`); }
+    else                  { flags.push({c:'err',  t:`DEFICIT: ${delta}`});         notes.push(`Subject took ${Math.abs(delta)} fewer pills than expected. Counsel subject; document reason.`); }
+  }
+
+  if (compPct !== null) {
+    if      (compPct < 80)   { flags.push({c:'err',  t:`LOW COMPLIANCE: ${compPct}%`}); notes.push(`Compliance ${compPct}% is below 80%. Review diary and counsel subject per protocol.`); }
+    else if (compPct < 100)  { flags.push({c:'warn', t:`COMPLIANCE: ${compPct}%`}); }
+    else if (compPct === 100){ flags.push({c:'ok',   t:'COMPLIANCE 100% ✓'}); }
+  }
+
+  if (denomAdj > 0) flags.push({c:'info', t:`${denomAdj} PILL(S) EXCUSED`});
+
+  const bottleEls = document.querySelectorAll('.bottle-row');
+  const unreturned = [], lost = [];
+  bottleEls.forEach((r, i) => {
+    const st  = r.querySelector('.b-status').value;
+    const bid = r.querySelector('.b-id').value || `B${i+1}`;
+    if (st === 'not_returned') unreturned.push(bid);
+    if (st === 'lost')         lost.push(bid);
+  });
+  if (lost.length)       { flags.push({c:'err',  t:`BOTTLE LOST: ${lost.join(', ')}`});        notes.push(`Lost: ${lost.join(', ')}. Document and notify monitor per protocol.`); }
+  if (unreturned.length) { flags.push({c:'warn', t:`${unreturned.length} BOTTLE(S) PENDING`}); notes.push(`Not yet returned: ${unreturned.join(', ')}.`); }
+
+  if (expectedTaken !== null && expectedTaken > totalDisp)
+    { flags.push({c:'err', t:'INSUFFICIENT SUPPLY'}); notes.push(`Adjusted expected (${expectedTaken}) exceeds dispensed (${totalDisp}).`); }
+
+  if (document.getElementById('diaryReviewed').value === 'no')
+    flags.push({c:'warn', t:'DIARY NOT REVIEWED'});
+
+  document.getElementById('flag-bar').innerHTML = flags.map(f=>`<span class="flag ${f.c}">${f.t}</span>`).join('');
+  document.getElementById('notes-out').textContent = notes.join('\n') || '';
+}
+
+// ── Date helpers ─────────────────────────────────────
+function fmtDate(dateStr) {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr + 'T00:00:00');
+  return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}).toUpperCase().replace(/ /g,'-');
+}
+function subtractDay(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0,10);
+}
+
+// ── Helpers ──────────────────────────────────────────
+function set(id, v)    { document.getElementById(id).textContent = v ?? '—'; }
+function setSub(id, v) { document.getElementById(id).textContent = v; }
+function col(id, c)    { document.getElementById(id).style.color = c; }
+function val(id)       { const el = document.getElementById(id); return el ? (el.value || el.textContent || '').trim() : ''; }
+
+function clearAll() {
+  if (!confirm('Clear all entries?')) return;
+  document.querySelectorAll('input:not([readonly])').forEach(el => { el.value = ''; });
+  document.getElementById('bottlesDispensed').value = 3;
+  document.getElementById('windowDays').value = 3;
+  document.getElementById('dispDose').value = '150';
+  document.getElementById('doseModified').value = 'no';
+  document.getElementById('diaryReviewed').value = 'yes';
+  document.getElementById('dose-mod-row').style.display = 'none';
+  document.getElementById('adj-rows').innerHTML = '';
+  document.getElementById('ecrf-panel').style.display = 'none';
+  adjIdx = 0;
+  syncBottleRows();
+  calculate();
+}
+
+function printSummary() {
+  const doseKey = document.getElementById('dispDose').value;
+  const dose = DOSE_MAP[doseKey];
+  const bottles = [];
+  document.querySelectorAll('.bottle-row').forEach((r, i) => {
+    const bid = r.querySelector('.b-id').value || 'UNK';
+    const st  = r.querySelector('.b-status').value.replace(/_/g,' ');
+    const lot = r.querySelector('.b-lot').value;
+    const dd  = r.querySelector('.b-dispdate').value;
+    bottles.push(`  B${i+1}: ID=${bid} | ${st}${lot?' | Lot='+lot:''}${dd?' | Dispensed='+dd:''}`);
+  });
+
+  // Adjustment / eCRF lines
+  const adjLines = [];
+  document.querySelectorAll('.adj-card[data-adj]').forEach((card, i) => {
+    const typeVal  = card.querySelector('.adj-type').value;
+    const typeInfo = ADJ_TYPES.find(t => t.v === typeVal) || ADJ_TYPES[0];
+    const date     = card.querySelector('.adj-date').value || 'no date';
+    const pills    = card.querySelector('.adj-pills').value;
+    const action   = card.querySelector('.adj-action').value;
+    const impact   = card.querySelector('.adj-impact-sel').value === 'denom' ? 'Denom adj' : 'Compliance miss';
+    const note     = card.querySelector('.adj-note').value;
+    const restartEl = card.querySelector('.adj-restart');
+    const restart  = restartEl ? (restartEl.value || '⚠ OPEN') : 'N/A';
+    adjLines.push(`  [${i+1}] ${fmtDate(date)} | ${typeInfo.l} | ${pills||'?'} pill(s) | ${impact} | Action: ${action||'—'}`);
+    if (typeInfo.isHold) adjLines.push(`       Restart: ${restart === '⚠ OPEN' ? '⚠ OPEN HOLD — RESTART NOT YET DOCUMENTED' : fmtDate(restart)}`);
+    adjLines.push(`       eCRF ref: Start=${fmtDate(date)} End=${typeInfo.isHold?(restart!=='⚠ OPEN'?fmtDate(subtractDay(restart)):'OPEN'):'same'} Dose=0 Reason=${note||typeVal}`);
+    if (note) adjLines.push(`       Reason: ${note}`);
+  });
+
+  const flags = [...document.querySelectorAll('.flag')].map(f => f.textContent).join(' | ');
+  const notes = document.getElementById('notes-out').textContent;
+  const comp  = document.getElementById('comp-pct').textContent;
+
+  const out = [
+    '═══════════════════════════════════════════════════════════',
+    ' PARTICIPANT DOSING AND COMPLIANCE LOG',
+    '═══════════════════════════════════════════════════════════',
+    `Protocol : ${val('protocolNum')}    PI: ${val('piName')}`,
+    `Subject  : ${val('subjectId')} (${val('subjectInitials')})`,
+    `Visit    : ${val('visitName')}    Date: ${val('visitDate')}`,
+    `Dose     : ${dose.label}    Mod: ${document.getElementById('doseModified').value}`,
+    '───────────────────────────────────────────────────────────',
+    `Total Qty Delivered          : ${val('r-dispensed')}`,
+    `Should Have Been Taken       : ${val('r-should')}`,
+    `Total # Returned             : ${val('r-returned')}`,
+    `Total # Taken (Del − Ret)    : ${val('r-taken')}`,
+    `Delta (Taken − Expected)     : ${val('r-delta')}`,
+    `Compliance                   : ${comp}`,
+    '───────────────────────────────────────────────────────────',
+    `Dosing Start : ${val('dosingStart')}    End: ${val('dosingEnd')}    Days: ${val('calcDays')}`,
+    `Diary Reviewed : ${document.getElementById('diaryReviewed').value}`,
+    `Staff (Disp): ${val('staffDispense')}    Staff (Acct): ${val('staffAccount')}`,
+    '───────────────────────────────────────────────────────────',
+    'BOTTLES:', ...bottles,
+    '───────────────────────────────────────────────────────────',
+    `FLAGS: ${flags || 'None'}`,
+    notes ? `\nNOTES / OPEN HOLDS:\n${notes}` : '',
+    val('discrepancyReason') ? `DOCUMENTED REASON: ${val('discrepancyReason')}` : '',
+    adjLines.length ? `\nDOSE ADJUSTMENTS / eCRF LOGLINE REFS:\n${adjLines.join('\n')}` : '',
+    '═══════════════════════════════════════════════════════════',
+  ].filter(l => l !== '').join('\n');
+
+  const w = window.open('', '_blank');
+  w.document.write(`<pre style="font-family:monospace;font-size:12px;padding:24px;background:#fff;color:#000;">${out}</pre>`);
+  w.document.close(); w.print();
+}
+
+// ── Theme toggle ─────────────────────────────────────
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light');
+  document.getElementById('theme-toggle').textContent = isLight ? '🌙 Dark' : '☀ Light';
+  document.getElementById('theme-color-meta').setAttribute('content', isLight ? '#f5f7fa' : '#0f1117');
+  localStorage.setItem('theme', isLight ? 'light' : 'dark');
+}
+
+// Apply saved theme on load
+(function() {
+  const saved = localStorage.getItem('theme');
+  if (saved === 'light') {
+    document.body.classList.add('light');
+    document.addEventListener('DOMContentLoaded', () => {
+      const btn = document.getElementById('theme-toggle');
+      if (btn) btn.textContent = '🌙 Dark';
+      const meta = document.getElementById('theme-color-meta');
+      if (meta) meta.setAttribute('content', '#f5f7fa');
+    });
+  }
+})();
+
+// ── Service Worker registration ───────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(reg => console.log('SW registered:', reg.scope))
+      .catch(err => console.log('SW failed:', err));
+  });
+}
+</script>
+</body>
+</html>
