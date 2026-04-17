@@ -1,7 +1,9 @@
-const CACHE_NAME = 'drug-acct-v3';
+const CACHE_NAME = 'drug-acct-v4';
 const ASSETS = [
   './',
   './index.html',
+  './lean.html',
+  './help.html',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
