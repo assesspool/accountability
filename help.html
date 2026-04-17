@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drug Accountability Log — Field Reference</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #f5f7fa;
+    --surface: #ffffff;
+    --surface2: #eef1f6;
+    --border: #d0d7e3;
+    --accent: #0277bd;
+    --accent2: #0288d1;
+    --warn: #e65100;
+    --ok: #2e7d32;
+    --err: #c62828;
+    --text: #1a2035;
+    --muted: #5a6a85;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+    --section-a: #e3f2fd;
+    --section-b: #e8f5e9;
+    --section-c: #fff3e0;
+    --section-d: #fce4ec;
+    --section-e: #ede7f6;
+    --section-f: #e0f7fa;
+    --section-g: #f3e5f5;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    line-height: 1.6;
+    padding: 24px 20px 40px;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  /* ── Page header ── */
+  .page-header {
+    border-bottom: 3px solid var(--accent);
+    padding-bottom: 14px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .page-header h1 {
+    font-family: var(--mono);
+    font-size: 16px; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--accent);
+  }
+  .page-header .sub {
+    font-size: 11px; color: var(--muted);
+    font-family: var(--mono);
+  }
+  .back-link {
+    margin-left: auto;
+    font-family: var(--mono); font-size: 11px;
+    color: var(--accent); text-decoration: none;
+    padding: 4px 10px; border: 1px solid var(--accent);
+    border-radius: 3px;
+  }
+  .back-link:hover { background: var(--accent); color: #fff; }
+
+  /* ── Section blocks ── */
+  .section {
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    margin-bottom: 18px;
+    overflow: hidden;
+  }
+  .section-header {
+    padding: 10px 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-header h2 {
+    font-family: var(--mono);
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase;
+  }
+  .section-num {
+    width: 22px; height: 22px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 10px; font-weight: 600;
+    background: rgba(255,255,255,0.6);
+    border: 1px solid rgba(0,0,0,0.1);
+    flex-shrink: 0;
+  }
+  .section-desc {
+    font-size: 11px; color: var(--muted);
+    padding: 0 14px 10px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  /* Section color themes */
+  .sec-a .section-header { background: var(--section-a); }
+  .sec-b .section-header { background: var(--section-b); }
+  .sec-c .section-header { background: var(--section-c); }
+  .sec-d .section-header { background: var(--section-d); }
+  .sec-e .section-header { background: var(--section-e); }
+  .sec-f .section-header { background: var(--section-f); }
+  .sec-g .section-header { background: var(--section-g); }
+
+  /* ── Field table ── */
+  .field-table {
+    width: 100%; border-collapse: collapse;
+    background: var(--surface);
+  }
+  .field-table th {
+    font-size: 9px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted); padding: 6px 12px;
+    border-bottom: 1px solid var(--border);
+    text-align: left; background: var(--surface2);
+  }
+  .field-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .field-table tr:last-child td { border-bottom: none; }
+  .field-table tr:hover td { background: var(--bg); }
+
+  .field-name {
+    font-family: var(--mono);
+    font-size: 11px; font-weight: 600;
+    color: var(--accent2); white-space: nowrap;
+    min-width: 160px;
+  }
+  .field-req {
+    font-family: var(--mono);
+    font-size: 9px; font-weight: 600;
+    padding: 2px 5px; border-radius: 2px;
+    white-space: nowrap;
+  }
+  .req-yes  { background: #ffebee; color: var(--err); }
+  .req-calc { background: #e3f2fd; color: var(--accent); }
+  .req-opt  { background: #f5f5f5; color: var(--muted); }
+
+  .field-desc { font-size: 12px; color: var(--text); }
+  .field-example {
+    font-family: var(--mono);
+    font-size: 10px; color: var(--muted);
+    margin-top: 3px;
+  }
+  .field-example span { color: var(--ok); }
+  .field-note {
+    font-size: 11px; color: var(--warn);
+    margin-top: 3px;
+  }
+
+  /* ── Flag / output reference ── */
+  .flag-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 12px;
+    background: var(--surface);
+  }
+  .flag-item {
+    padding: 8px 10px;
+    border-radius: 3px; border: 1px solid;
+    font-size: 11px;
+  }
+  .flag-item .flag-label {
+    font-family: var(--mono);
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+  .flag-ok   { border-color: var(--ok);   background: #f1f8f1; }
+  .flag-warn { border-color: var(--warn); background: #fff8f1; }
+  .flag-err  { border-color: var(--err);  background: #fff1f1; }
+  .flag-info { border-color: var(--accent);background: #f0f7ff; }
+  .flag-ok   .flag-label { color: var(--ok); }
+  .flag-warn .flag-label { color: var(--warn); }
+  .flag-err  .flag-label { color: var(--err); }
+  .flag-info .flag-label { color: var(--accent); }
+
+  /* ── Compliance math box ── */
+  .math-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px 16px;
+    margin: 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 2;
+  }
+  .math-box .formula { color: var(--accent2); font-weight: 600; }
+  .math-box .example { color: var(--muted); font-size: 11px; }
+
+  /* ── Workflow steps ── */
+  .workflow {
+    padding: 12px 14px;
+    background: var(--surface);
+    counter-reset: step;
+  }
+  .workflow-step {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .workflow-step:last-child { border-bottom: none; }
+  .workflow-step::before {
+    counter-increment: step;
+    content: counter(step);
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--accent); color: #fff;
+    font-family: var(--mono); font-size: 10px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 1px;
+  }
+  .workflow-step .ws-title {
+    font-weight: 600; font-size: 12px; margin-bottom: 2px;
+  }
+  .workflow-step .ws-desc { font-size: 11px; color: var(--muted); }
+
+  /* ── Adj event table ── */
+  .event-table {
+    width: 100%; border-collapse: collapse;
+    background: var(--surface); font-size: 11px;
+  }
+  .event-table th {
+    font-size: 9px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--muted); padding: 6px 10px;
+    border-bottom: 1px solid var(--border);
+    text-align: left; background: var(--surface2);
+  }
+  .event-table td {
+    padding: 7px 10px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .event-table tr:last-child td { border-bottom: none; }
+  .badge {
+    display: inline-block;
+    font-family: var(--mono); font-size: 9px; font-weight: 600;
+    padding: 2px 6px; border-radius: 2px; border: 1px solid;
+    white-space: nowrap;
+  }
+  .badge-denom { color: var(--accent); border-color: var(--accent); background: #e3f2fd; }
+  .badge-comp  { color: var(--err);    border-color: var(--err);    background: #ffebee; }
+  .badge-hold  { color: #6a1b9a;       border-color: #6a1b9a;       background: #f3e5f5; }
+
+  /* ── Print ── */
+  @media print {
+    body { padding: 10px; font-size: 11px; }
+    .back-link { display: none; }
+    .section { break-inside: avoid; }
+    .page-header { break-after: avoid; }
+  }
+
+  @media (max-width: 600px) {
+    .flag-grid { grid-template-columns: 1fr; }
+    .field-name { min-width: 120px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Drug Accountability Log</h1>
+  <span class="sub">Field Reference &amp; User Guide</span>
+  <a class="back-link" href="index.html">← Back to Tool</a>
+</div>
+
+<!-- ══ SECTION 1: SUBJECT RECORD BAR ══════════════════ -->
+<div class="section sec-a">
+  <div class="section-header">
+    <span class="section-num">1</span>
+    <h2>Subject Record Bar</h2>
+  </div>
+  <p class="section-desc">Manages the JSON file that stores all cycles for one subject. Always load or save here first.</p>
+  <div class="workflow">
+    <div class="workflow-step">
+      <div><div class="ws-title">First visit for a new subject</div>
+      <div class="ws-desc">Fill the Study / Participant Header, complete the cycle, then click <strong>Save Record</strong>. A JSON file is downloaded named <code>subjectID_protocol_acct.json</code>. Save this file — it is the subject's record.</div></div>
+    </div>
+    <div class="workflow-step">
+      <div><div class="ws-title">Subsequent visits</div>
+      <div class="ws-desc">Click <strong>Load Record</strong> and select the subject's JSON file. The header populates automatically, cycle history appears below, and the cycle number increments. Fill the current cycle, then click <strong>+ Save This Cycle</strong>.</div></div>
+    </div>
+    <div class="workflow-step">
+      <div><div class="ws-title">Status indicator</div>
+      <div class="ws-desc"><span style="color:var(--ok);font-weight:600;">Green</span> = record loaded and saved. <span style="color:var(--warn);font-weight:600;">Amber ●</span> = unsaved changes — click Save Record before closing.</div></div>
+    </div>
+    <div class="workflow-step">
+      <div><div class="ws-title">File management</div>
+      <div class="ws-desc">One JSON file per subject per protocol. Store files in a secure location accessible at clinic (e.g. encrypted drive, institutional cloud). No data is transmitted — everything stays on your device.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SECTION 2: STUDY / PARTICIPANT HEADER ═══════════ -->
+<div class="section sec-b">
+  <div class="section-header">
+    <span class="section-num">2</span>
+    <h2>Study / Participant Header</h2>
+  </div>
+  <p class="section-desc">Identifies the protocol, site, and subject. Set once; loaded automatically from subject record on subsequent visits. Shared across all cycles.</p>
+  <table class="field-table">
+    <thead><tr><th>Field</th><th>Required</th><th>What to Enter</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="field-name">Protocol #</td>
+        <td><span class="field-req req-opt">Optional</span></td>
+        <td><div class="field-desc">Sponsor-assigned protocol number.</div><div class="field-example">e.g. <span>ABC-2023-01</span></div></td>
+      </tr>
+      <tr>
+        <td class="field-name">PI</td>
+        <td><span class="field-req req-opt">Optional</span></td>
+        <td><div class="field-desc">Principal Investigator last name.</div></td>
+      </tr>
+      <tr>
+        <td class="field-name">Participant #</td>
+        <td><span class="field-req req-yes">Required</span></td>
+        <td><div class="field-desc">Subject ID as it appears in the regulatory binder and eCRF. Used as the filename for the subject's JSON record.</div><div class="field-example">e.g. <span>001-001</span></div></td>
+      </tr>
+      <tr>
+        <td class="field-name">Participant Initials</td>
+        <td><span class="field-req req-opt">Optional</span></td>
+        <td><div class="field-desc">Subject initials. Appears in cycle history header.</div><div class="field-example">e.g. <span>J.D.</span></div></td>
+      </tr>
+      <tr>
+        <td class="field-name">Initial Total Daily Dose</td>
+        <td><span class="field-req req-opt">Optional</span></td>
+        <td><div class="field-desc">Starting total daily dose in mg. Reference only — does not affect calculations.</div><div class="field-example">e.g. <span>300 mg</span></div></td>
+      </tr>
+      <tr>
+        <td class="field-name">Initial Dosing Regimen</td>
+        <td><span class="field-req req-opt">Optional</span></td>
+        <td><div class="field-desc">Starting regimen as text. Reference only.</div><div class="field-example">e.g. <span>150 mg BID</span></div></td>
+      </tr>
+      <tr>
+        <td class="field-name">Visit Label</td>
+        <td><span class="field-req req-yes">Required</span></td>
+        <td><div class="field-desc">Visit identifier used to label this cycle in the history table and JSON record. Should match your protocol visit schedule.</div><div class="field-example">e.g. <span>C3D1</span></div></td>
+      </tr>
+      <tr>
+        <td class="field-name">Visit Date</td>
+        <td><span class="field-req req-yes">Required</span></td>
+        <td><div class="field-desc">Date of the current clinic visit. Used to calculate cycle length against the previous visit date.</div></td>
+      </tr>
+      <tr>
+        <td class="field-name">Prev. Visit Date</td>
+        <td><span class="field-req req-yes">Required</span></td>
+        <td><div class="field-desc">Date of the previous cycle visit. Combined with Visit Date to compute actual cycle length and flag against the ±day window.</div><div class="field-note">⚠ Leave blank for Cycle 1 Day 1 (no prior visit).</div></td>
+      </tr>
+      <tr>
+        <td class="field-name">Visit Window (±days)</td>
+        <td><span class="field-req req-yes">Required</span></td>
+        <td><div class="field-desc">Protocol-defined scheduling window in days. Default is ±3. Cycle length flags fire if actual days fall outside 28 ± this value.</div><div class="field-example">e.g. <span>3</span> → acceptable range 25–31 days</div></td>
+      </tr>
+      <tr>
+        <td class="field-name">Staff — Dispensing IP</td>
+        <td><span class="field-req req-yes">Required</span></td>
+        <td><div class="field-desc">Initials of staff member who dispensed the investigational product to the subject.</div></td>
+      </tr>
+      <tr>
+        <td class="field-name">Staff — IP Accountability</td>
+        <td><span class="field-req req-yes">Required</span></td>
+        <td><div class="field-desc">Initials of staff member performing accountability reconciliation (may be the same person).</div></td>
+      </tr>
+      <tr>
+        <td class="field-name">Dose Modification?</td>
+        <td><span class="field-req req-yes">Required</span></td>
+        <td><div class="field-desc">Select <strong>Yes</strong> if a dose change occurred this cycle. Reveals three additional fields: New Total Daily Dose, New Dosing Regimen, and Reason for Modification. Also triggers a DOSE MOD flag and generates an eCRF logline reference in the Pending eCRF Actions panel.</div></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══ SECTION 3: DISPENSATION ═════════════════════════ -->
+<div class="section sec-c">
+  <div class="section-header">
+    <span class="section-num">3</span>
+    <h2>Dispensation — This Cycle</h2>
+  </div>
+  <p class="section-desc">Records what was given to the subject at this visit. Drives all pill count calculations.</p>
+  <table class="field-table">
+    <thead><tr><th>Field</th><th>Required</th><th>What to Enter</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="field-name">Dose / Regimen Dispensed</td>
+        <td><span class="field-req req-yes">Required</span></td>
+        <td><div class="field-desc">Select the dose and frequency dispensed at this visit. Options are 50/100/150 mg in BID or QD. This sets pills-per-dose and doses-per-day used in all calculations. For dose reductions, select the new (lower) dose.</div>
+        <div class="field-example">150mg BID = 3 pills × 2 doses = <span>6 pills/day</span></div></td>
+      </tr>
+      <tr>
+        <td class="field-name"># Bottles / Vials Dispensed</td>
+        <td><span class="field-req req-yes">Required</span></td>
+        <td><div class="field-desc">Number of bottles handed to the subject. Changing this number automatically adds or removes bottle rows below. Each bottle holds 60 pills.</div>
+        <div class="field-example">150mg BID for 28 days = 168 pills needed → <span>3 bottles</span> (180 pills) dispensed</div></td>
+      </tr>
+      <tr>
+        <td class="field-name">Total Pill Qty Delivered</td>
+        <td><span class="field-req req-calc">Calculated</span></td>
+        <td><div class="field-desc">Auto-calculated: bottles × 60. Read-only. This is the starting pill count for reconciliation.</div></td>
+      </tr>
+      <tr>
+        <td class="field-name">Date &amp; Time Dispensed</td>
+        <td><span class="field-req req-opt">Optional</span></td>
+        <td><div class="field-desc">Exact date and time IP was given to subject. Used for records; does not affect calculations. Relevant for late-dispense Day 1 events.</div></td>
+      </tr>
+      <tr>
+        <td class="field-name">Bottle ID / UNK</td>
+        <td><span class="field-req req-yes">Required</span></td>
+        <td><div class="field-desc">Enter the bottle identifier printed on the label, or <strong>UNK</strong> if not available at time of entry. Sponsor requires tracking of which specific bottles were dispensed and returned. One row per bottle.</div></td>
+      </tr>
+      <tr>
+        <td class="field-name">Return Status (per bottle)</td>
+        <td><span class="field-req req-yes">Required</span></td>
+        <td><div class="field-desc">Status of each bottle at return visit. Color-coded dot: green = returned, amber = pending, red = lost/missing.
+          <br><br>
+          <strong>Not Returned</strong> — bottle not yet back (normal at dispense visit).<br>
+          <strong>Returned (partial)</strong> — returned with pills remaining inside.<br>
+          <strong>Returned (empty)</strong> — returned empty, all pills accounted for or used.<br>
+          <strong>Lost / Missing</strong> — triggers a red BOTTLE LOST flag; document and notify monitor.
+        </div></td>
+      </tr>
+      <tr>
+        <td class="field-name">Date Dispensed (per bottle)</td>
+        <td><span class="field-req req-opt">Optional</span></td>
+        <td><div class="field-desc">Date this specific bottle was given. Useful when bottles from different dispensation events are being reconciled together.</div></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══ SECTION 4: PILL DIARY ═══════════════════════════ -->
+<div class="section sec-d">
+  <div class="section-header">
+    <span class="section-num">4</span>
+    <h2>Pill Diary — Dosing Dates</h2>
+  </div>
+  <p class="section-desc">Transcribed from the subject's paper pill diary. Defines the date range over which the subject was expected to take medication. Dose assumed uniform for the full cycle unless adjusted in Section 5.</p>
+  <table class="field-table">
+    <thead><tr><th>Field</th><th>Required</th><th>What to Enter</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="field-name">Dosing Start Date</td>
+        <td><span class="field-req req-yes">Required</span></td>
+        <td><div class="field-desc">First day the subject took medication this cycle. For Cycle 1 and subsequent cycles, this is typically the day of the clinic visit (the PM dose of Day 1 per protocol, as the AM dose is held until dispensation).</div>
+        <div class="field-note">⚠ If dispensed late in the day, the AM dose may have been held — add a Late Dispense adjustment in Section 5.</div></td>
+      </tr>
+      <tr>
+        <td class="field-name">Dosing End Date</td>
+        <td><span class="field-req req-yes">Required</span></td>
+        <td><div class="field-desc">Last day the subject took medication before this visit. Typically the day before the current clinic visit. Taken from the subject's diary.</div></td>
+      </tr>
+      <tr>
+        <td class="field-name">Days on Drug</td>
+        <td><span class="field-req req-calc">Calculated</span></td>
+        <td><div class="field-desc">Auto-calculated: (End Date − Start Date) + 1, inclusive of both endpoints. This is the denominator basis for compliance.</div>
+        <div class="field-example">Start 18-Mar, End 14-Apr → <span>28 days</span></div></td>
+      </tr>
+      <tr>
+        <td class="field-name">Expected Pills Taken</td>
+        <td><span class="field-req req-calc">Calculated</span></td>
+        <td><div class="field-desc">Auto-calculated: Days × pills/day (from dose selection). This is the raw B value before adjustments. Any denominator adjustments from Section 5 are subtracted to produce the final adjusted expected.</div>
+        <div class="field-example">28 days × 6 pills/day = <span>168 pills</span></div></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══ SECTION 5: DOSE ADJUSTMENTS ════════════════════ -->
+<div class="section sec-e">
+  <div class="section-header">
+    <span class="section-num">5</span>
+    <h2>Dose Adjustments &amp; Interruptions</h2>
+  </div>
+  <p class="section-desc">Captures individual dose events that change the expected pill count. Each event adjusts the reconciliation math and generates a pre-filled eCRF administration log logline reference. One row per event.</p>
+
+  <table class="event-table">
+    <thead><tr><th>Event Type</th><th>Impact</th><th>eCRF Loglines Generated</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Late Dispense — Day 1 Partial</strong></td>
+        <td><span class="badge badge-denom">DENOM ADJ</span></td>
+        <td>Note only — no 0-dose logline needed</td>
+        <td>Pre-fills with pills-per-dose (one half of a BID day). Use when dispensed late and AM dose was held per protocol.</td>
+      </tr>
+      <tr>
+        <td><strong>Vomited / Unable to Take</strong></td>
+        <td><span class="badge badge-denom">DENOM ADJ</span></td>
+        <td>Single 0-dose logline (start = end = event date)</td>
+        <td>Protocol-defined — excused from compliance denominator.</td>
+      </tr>
+      <tr>
+        <td><strong>Dropped / Unusable Pill</strong></td>
+        <td><span class="badge badge-denom">DENOM ADJ</span></td>
+        <td>Single 0-dose logline</td>
+        <td>Pill cannot be retaken. Excused from compliance denominator.</td>
+      </tr>
+      <tr>
+        <td><strong>Forgotten Dose</strong></td>
+        <td><span class="badge badge-comp">COMPLIANCE MISS</span></td>
+        <td>Single 0-dose logline</td>
+        <td>Counts against compliance %. Diary should document reason.</td>
+      </tr>
+      <tr>
+        <td><strong>Drug Held (AE / toxicity)</strong></td>
+        <td><span class="badge badge-hold">INTERRUPTION</span></td>
+        <td>3 loglines: close active → open 0-dose → open restart</td>
+        <td>Requires restart date to close the eCRF sequence. Open holds fire a persistent red flag.</td>
+      </tr>
+      <tr>
+        <td><strong>Drug Held — Neutropenia (ANC)</strong></td>
+        <td><span class="badge badge-hold">INTERRUPTION</span></td>
+        <td>3 loglines: close active → open 0-dose → open restart</td>
+        <td>Common in oncology. Subject may restart between visits after lab confirmation. Enter restart date when known.</td>
+      </tr>
+      <tr>
+        <td><strong>Drug Held — Surgery / Procedure</strong></td>
+        <td><span class="badge badge-hold">INTERRUPTION</span></td>
+        <td>3 loglines: close active → open 0-dose → open restart</td>
+        <td>Peri-operative hold. Restart date typically known in advance.</td>
+      </tr>
+      <tr>
+        <td><strong>Drug Held — DLT Evaluation</strong></td>
+        <td><span class="badge badge-hold">INTERRUPTION</span></td>
+        <td>3 loglines: close active → open 0-dose → open restart</td>
+        <td>Dose-limiting toxicity evaluation hold. May lead to dose reduction on restart.</td>
+      </tr>
+      <tr>
+        <td><strong>Dose Reduction</strong></td>
+        <td><span class="badge badge-denom">DENOM ADJ</span></td>
+        <td>2 loglines: close prior dose line → open new dose line</td>
+        <td>Permanent and unidirectional — dose cannot go back up. Select new dose at restart.</td>
+      </tr>
+      <tr>
+        <td><strong>Site-Directed Hold</strong></td>
+        <td><span class="badge badge-hold">INTERRUPTION</span></td>
+        <td>3 loglines: close active → open 0-dose → open restart</td>
+        <td>Hold instructed by site staff (e.g. pre-procedure, safety concern).</td>
+      </tr>
+      <tr>
+        <td><strong>Other</strong></td>
+        <td>User-selectable</td>
+        <td>Single 0-dose logline</td>
+        <td>Document reason in Note field. Select Denom Adj or Compliance Miss based on protocol guidance.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div style="padding:10px 14px;background:var(--surface);border-top:1px solid var(--border);">
+    <table class="field-table" style="border:none;">
+      <thead><tr><th>Field</th><th>What to Enter</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="field-name">Event Date</td>
+          <td><div class="field-desc">Date the event occurred. For holds, this is the first day drug was not taken. Used as the Start date in the eCRF 0-dose logline.</div></td>
+        </tr>
+        <tr>
+          <td class="field-name">Pills Affected</td>
+          <td><div class="field-desc">For single-dose events (vomited, dropped, forgotten): number of pills missed for that event. For holds, leave blank — pill count is auto-calculated from hold dates × pills/day.</div></td>
+        </tr>
+        <tr>
+          <td class="field-name">eCRF Action Taken</td>
+          <td><div class="field-desc">The Action Taken with Dose value for the eCRF exposure logline. Auto-set based on event type. Options: Drug Held / Drug Restarted / Dose Reduced / Dose Increased / Drug Withdrawn.</div></td>
+        </tr>
+        <tr>
+          <td class="field-name">Impact on Compliance</td>
+          <td><div class="field-desc"><strong>Denominator adjust</strong> — pills subtracted from expected before compliance is calculated (event is excused). <strong>Compliance miss</strong> — pills stay in denominator; compliance % decreases.</div></td>
+        </tr>
+        <tr>
+          <td class="field-name">Restart Date <em>(holds only)</em></td>
+          <td><div class="field-desc">Date drug was restarted after a hold. Required to close the eCRF logline sequence. Until entered, an <span style="color:var(--err);font-weight:600;">⚠ OPEN HOLD</span> badge pulses on the card and a red flag fires in the summary. The hold day count (restart − hold start) × pills/day is auto-subtracted from the denominator.</div></td>
+        </tr>
+        <tr>
+          <td class="field-name">Restart Dose <em>(holds only)</em></td>
+          <td><div class="field-desc">Dose on restart if different from prior (e.g. dose reduction on restart after DLT). Defaults to same dose if left blank.</div></td>
+        </tr>
+        <tr>
+          <td class="field-name">Note / Reason</td>
+          <td><div class="field-desc">Free text reason. Maps directly to the <em>Reason for Action Taken</em> column in the eCRF exposure log. Also feeds the discrepancy notes in the print summary.</div>
+          <div class="field-example">e.g. <span>Grade 3 neutropenia, ANC &lt; 1.0 × 10⁹/L</span></div></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ SECTION 6: DRUG RETURN ══════════════════════════ -->
+<div class="section sec-f">
+  <div class="section-header">
+    <span class="section-num">6</span>
+    <h2>Drug Return &amp; Diary Review</h2>
+  </div>
+  <p class="section-desc">Records what came back from the subject at this visit. The total pills returned is the key input that drives compliance and delta calculations.</p>
+  <table class="field-table">
+    <thead><tr><th>Field</th><th>Required</th><th>What to Enter</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="field-name">Date Study Drug Returned</td>
+        <td><span class="field-req req-opt">Optional</span></td>
+        <td><div class="field-desc">Date bottles were physically returned. Usually the same as Visit Date. Record if different.</div></td>
+      </tr>
+      <tr>
+        <td class="field-name"># Bottles / Vials Returned</td>
+        <td><span class="field-req req-yes">Required</span></td>
+        <td><div class="field-desc">Count of bottles returned. All dispensed bottles must be accounted for — whether full, partial, or empty. Update the individual bottle status rows in Section 3 accordingly.</div></td>
+      </tr>
+      <tr>
+        <td class="field-name">Total # Pills / Vials Returned</td>
+        <td><span class="field-req req-yes">Required</span></td>
+        <td><div class="field-desc">Physical count of pills remaining across all returned bottles combined. This is the most critical entry — it drives the compliance calculation. Count carefully; this is the number written on the accountability log.</div>
+        <div class="field-note">⚠ Any delta from expected triggers a flag immediately. Zero tolerance — any discrepancy is flagged.</div></td>
+      </tr>
+      <tr>
+        <td class="field-name">Drug Diary Returned &amp; Reviewed?</td>
+        <td><span class="field-req req-yes">Required</span></td>
+        <td><div class="field-desc">Confirms whether the subject's paper pill diary was collected and reviewed this visit. Select <strong>No</strong> to trigger a DIARY NOT REVIEWED flag.</div></td>
+      </tr>
+      <tr>
+        <td class="field-name">Reasons for IP Discrepancies</td>
+        <td><span class="field-req req-opt">Conditional</span></td>
+        <td><div class="field-desc">Free text. Required when there is a pill count discrepancy or any red/amber flag. This text appears in the print summary and CSV export. Maps to the Comments column on the accountability form.</div></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══ SECTION 7: RECONCILIATION SUMMARY ══════════════ -->
+<div class="section sec-g">
+  <div class="section-header">
+    <span class="section-num">7</span>
+    <h2>Reconciliation Summary</h2>
+  </div>
+  <p class="section-desc">All values are auto-calculated. No entry required. Maps directly to the accountability log form columns.</p>
+
+  <div class="math-box">
+    <div class="formula">Total Qty Delivered</div>
+    <div class="example">= Bottles Dispensed × 60</div>
+    <br>
+    <div class="formula">B — Should Have Been Taken (adjusted)</div>
+    <div class="example">= (Diary Days × Pills/day) − Denominator Adjustments</div>
+    <br>
+    <div class="formula">A — Total # Taken</div>
+    <div class="example">= Total Qty Delivered − Total # Returned</div>
+    <br>
+    <div class="formula">Qty Expected Return</div>
+    <div class="example">= Total Qty Delivered − B (adjusted expected)</div>
+    <br>
+    <div class="formula">Delta</div>
+    <div class="example">= A − B  (positive = excess taken, negative = deficit)</div>
+    <br>
+    <div class="formula">% Compliance</div>
+    <div class="example">= A ÷ B × 100  (uses adjusted B, not raw diary expected)</div>
+  </div>
+
+  <div style="padding:10px 14px;background:var(--surface);">
+    <div style="font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">Flags Reference</div>
+    <div class="flag-grid">
+      <div class="flag-item flag-ok">
+        <div class="flag-label">CYCLE LENGTH: Nd ✓</div>
+        Actual cycle days within protocol window. No action needed.
+      </div>
+      <div class="flag-item flag-ok">
+        <div class="flag-label">PILL COUNT ✓</div>
+        Actual return matches expected exactly (zero tolerance).
+      </div>
+      <div class="flag-item flag-ok">
+        <div class="flag-label">COMPLIANCE 100% ✓</div>
+        All expected doses accounted for.
+      </div>
+      <div class="flag-item flag-warn">
+        <div class="flag-label">SHORT CYCLE: Nd</div>
+        Cycle days below lower window bound. Verify dates.
+      </div>
+      <div class="flag-item flag-warn">
+        <div class="flag-label">EXCESS TAKEN: +N</div>
+        Subject took more pills than expected. Verify diary; possible double-dose or counting error.
+      </div>
+      <div class="flag-item flag-warn">
+        <div class="flag-label">COMPLIANCE: N%</div>
+        Compliance below 100% but above 80%. Document reason.
+      </div>
+      <div class="flag-item flag-warn">
+        <div class="flag-label">N BOTTLE(S) PENDING</div>
+        One or more bottles not yet marked as returned. Update bottle status rows.
+      </div>
+      <div class="flag-item flag-warn">
+        <div class="flag-label">DIARY NOT REVIEWED</div>
+        Drug diary not collected/reviewed. Required before finalizing accountability.
+      </div>
+      <div class="flag-item flag-err">
+        <div class="flag-label">OPEN HOLD — [TYPE]</div>
+        A drug hold has no restart date entered. eCRF logline sequence is incomplete. Enter restart date in Section 5.
+      </div>
+      <div class="flag-item flag-err">
+        <div class="flag-label">LONG CYCLE: Nd</div>
+        Cycle days exceed upper window bound. Verify dates; subject may have run short on medication.
+      </div>
+      <div class="flag-item flag-err">
+        <div class="flag-label">DEFICIT: −N</div>
+        Fewer pills returned than expected. Counsel subject. Document reason in IP Discrepancies field.
+      </div>
+      <div class="flag-item flag-err">
+        <div class="flag-label">LOW COMPLIANCE: N%</div>
+        Compliance below 80%. Review diary, counsel subject, document per protocol requirements.
+      </div>
+      <div class="flag-item flag-err">
+        <div class="flag-label">BOTTLE LOST: ID</div>
+        Bottle marked as lost/missing. Document and notify monitor.
+      </div>
+      <div class="flag-item flag-err">
+        <div class="flag-label">INSUFFICIENT SUPPLY</div>
+        Expected consumption exceeds dispensed quantity. Subject may have run out before visit.
+      </div>
+      <div class="flag-item flag-info">
+        <div class="flag-label">N PILL(S) EXCUSED</div>
+        Denominator adjustments applied. Compliance calculated on adjusted expected.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ FOOTER ══════════════════════════════════════════ -->
+<div style="margin-top:24px;padding-top:14px;border-top:1px solid var(--border);font-size:10px;color:var(--muted);font-family:var(--mono);display:flex;gap:16px;flex-wrap:wrap;align-items:center;">
+  <span>Drug Accountability Log — Field Reference</span>
+  <span>MIT License</span>
+  <span>This tool is a reference aid only. It does not replace institutional SOPs, protocol requirements, sponsor guidelines, or clinical judgment.</span>
+  <a href="index.html" style="color:var(--accent);margin-left:auto;">← Back to Tool</a>
+</div>
+
+</body>
+</html>
