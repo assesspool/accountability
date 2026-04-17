@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Drug Accountability — Quick Calc</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f1117" id="theme-color-meta">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Drug Acct">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+:root {
+  --bg:#0f1117; --surface:#171b25; --surface2:#1e2333;
+  --border:#2a3045; --accent:#4fc3f7; --accent2:#81d4fa;
+  --warn:#ffb74d; --ok:#66bb6a; --err:#ef5350;
+  --text:#e0e6f0; --muted:#6b7a99;
+  --mono:'IBM Plex Mono',monospace; --sans:'IBM Plex Sans',sans-serif;
+}
+body.light {
+  --bg:#f5f7fa; --surface:#fff; --surface2:#eef1f6;
+  --border:#d0d7e3; --accent:#0277bd; --accent2:#0288d1;
+  --warn:#e65100; --ok:#2e7d32; --err:#c62828;
+  --text:#1a2035; --muted:#5a6a85;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);
+  font-size:13px;line-height:1.5;min-height:100vh;padding:16px;}
+
+/* ── Layout ── */
+.page{max-width:680px;margin:0 auto;}
+
+header{display:flex;align-items:center;gap:12px;
+  border-bottom:1px solid var(--border);padding-bottom:10px;margin-bottom:14px;}
+header h1{font-family:var(--mono);font-size:13px;font-weight:600;
+  letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);}
+header .sub{font-family:var(--mono);font-size:10px;color:var(--muted);}
+#theme-btn{margin-left:auto;background:transparent;border:1px solid var(--border);
+  border-radius:20px;padding:4px 10px;font-family:var(--mono);font-size:10px;
+  font-weight:600;color:var(--muted);cursor:pointer;}
+#theme-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+/* ── Record bar ── */
+#rec-bar{background:var(--surface2);border:1px solid var(--border);
+  border-radius:4px;padding:8px 12px;margin-bottom:12px;
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+#rec-status{font-family:var(--mono);font-size:10px;font-weight:600;
+  letter-spacing:0.05em;color:var(--muted);flex:1;min-width:140px;}
+#rec-status.loaded{color:var(--ok);}
+#rec-status.dirty{color:var(--warn);}
+
+/* ── Card ── */
+.card{background:var(--surface);border:1px solid var(--border);
+  border-radius:4px;padding:12px 14px;margin-bottom:10px;}
+.card-title{font-family:var(--mono);font-size:9px;font-weight:600;
+  letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);
+  margin-bottom:10px;padding-bottom:7px;border-bottom:1px solid var(--border);}
+
+/* ── Grid ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;}
+
+/* ── Fields ── */
+.f{margin-bottom:0;}
+label{display:block;font-size:9px;font-weight:600;letter-spacing:0.06em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:3px;}
+input,select{width:100%;background:var(--bg);border:1px solid var(--border);
+  border-radius:3px;color:var(--text);font-family:var(--mono);font-size:12px;
+  padding:6px 8px;outline:none;transition:border-color 0.15s;}
+input:focus,select:focus{border-color:var(--accent);}
+input[type="date"]{color-scheme:dark;}
+body.light input[type="date"]{color-scheme:light;}
+input[readonly]{color:var(--accent2);cursor:default;}
+select option{background:var(--surface2);}
+
+/* ── Big outputs ── */
+.out-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px;}
+.out-box{background:var(--bg);border:1px solid var(--border);
+  border-radius:3px;padding:10px 10px 8px;}
+.out-lbl{font-size:8px;font-weight:600;letter-spacing:0.08em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:3px;}
+.out-val{font-family:var(--mono);font-size:26px;font-weight:600;
+  color:var(--text);line-height:1;}
+.out-sub{font-size:9px;color:var(--muted);margin-top:2px;
+  font-family:var(--mono);}
+
+/* ── Compliance big ── */
+.comp-row{display:flex;align-items:baseline;gap:16px;
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:3px;padding:10px 12px;margin-bottom:10px;}
+.comp-pct{font-family:var(--mono);font-size:44px;font-weight:600;line-height:1;}
+.comp-detail{font-family:var(--mono);font-size:10px;color:var(--muted);
+  line-height:1.8;white-space:pre;}
+.comp-bar-bg{height:5px;background:var(--border);border-radius:3px;
+  overflow:hidden;margin-top:6px;}
+.comp-bar-fill{height:100%;border-radius:3px;transition:width 0.3s;}
+
+/* ── Flags ── */
+.flags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+.flag{font-family:var(--mono);font-size:9px;font-weight:600;
+  letter-spacing:0.05em;padding:3px 8px;border-radius:2px;border:1px solid;}
+.flag.ok  {color:var(--ok);  border-color:var(--ok);  background:rgba(102,187,106,0.08);}
+.flag.warn{color:var(--warn);border-color:var(--warn);background:rgba(255,183,77,0.08);}
+.flag.err {color:var(--err); border-color:var(--err); background:rgba(239,83,80,0.08);}
+.flag.info{color:var(--accent);border-color:var(--accent);background:rgba(79,195,247,0.08);}
+
+/* ── Transcription ── */
+.transcription{font-family:var(--mono);font-size:10px;color:var(--accent2);
+  background:var(--bg);border:1px solid var(--border);border-radius:3px;
+  padding:10px 12px;line-height:1.9;white-space:pre-wrap;margin-bottom:10px;}
+.transcription .t-label{color:var(--muted);}
+
+/* ── Adjustment rows ── */
+.adj-row{display:grid;grid-template-columns:1fr 80px 100px 28px;
+  gap:6px;align-items:center;margin-bottom:6px;}
+.adj-row input,.adj-row select{font-size:11px;padding:4px 6px;}
+.del-btn{background:transparent;border:none;color:var(--muted);
+  cursor:pointer;font-size:15px;padding:0;line-height:1;}
+.del-btn:hover{color:var(--err);}
+.btn-add{background:transparent;border:1px dashed var(--border);
+  color:var(--muted);font-size:9px;padding:4px 10px;margin-top:4px;
+  font-family:var(--mono);font-weight:600;letter-spacing:0.06em;
+  text-transform:uppercase;border-radius:3px;cursor:pointer;}
+.btn-add:hover{border-color:var(--accent);color:var(--accent);}
+
+/* ── Action row ── */
+.action-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;}
+.btn{font-family:var(--mono);font-size:10px;font-weight:600;
+  letter-spacing:0.07em;text-transform:uppercase;padding:7px 14px;
+  border-radius:3px;border:none;cursor:pointer;transition:opacity 0.15s;}
+.btn:hover{opacity:0.82;}
+.btn-primary{background:var(--accent);color:#0a0e14;}
+.btn-secondary{background:transparent;border:1px solid var(--border);color:var(--muted);}
+
+/* ── Cycle history ── */
+#history-panel{background:var(--surface);border:1px solid var(--border);
+  border-radius:4px;padding:12px 14px;margin-top:10px;}
+#history-panel .card-title{margin-bottom:8px;}
+.htable{width:100%;border-collapse:collapse;font-family:var(--mono);
+  font-size:10px;overflow-x:auto;display:block;}
+.htable th{font-size:8px;font-weight:600;letter-spacing:0.07em;
+  text-transform:uppercase;color:var(--muted);padding:4px 8px;
+  border-bottom:1px solid var(--border);text-align:left;white-space:nowrap;}
+.htable td{padding:5px 8px;border-bottom:1px solid var(--border);
+  white-space:nowrap;}
+.htable tr:last-child td{border-bottom:none;}
+.htable tr:hover td{background:var(--surface2);}
+.c-ok{color:var(--ok);font-weight:600;}
+.c-warn{color:var(--warn);font-weight:600;}
+.c-err{color:var(--err);font-weight:600;}
+
+@media(max-width:500px){
+  .g4,.out-grid{grid-template-columns:1fr 1fr;}
+  .g3{grid-template-columns:1fr 1fr;}
+  .adj-row{grid-template-columns:1fr 70px 28px;}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <h1>Drug Acct</h1>
+  <span class="sub">Quick Calc</span>
+  <button id="theme-btn" onclick="toggleTheme()">☀ Light</button>
+</header>
+
+<!-- Record bar -->
+<div id="rec-bar">
+  <span id="rec-status">No record loaded</span>
+  <input type="file" id="file-input" accept=".json" style="display:none" onchange="loadRecord(event)">
+  <button class="btn btn-secondary" onclick="document.getElementById('file-input').click()">Load</button>
+  <button class="btn btn-secondary" onclick="saveRecord()">Save Record</button>
+  <button class="btn btn-secondary" id="btn-add-cycle" style="display:none" onclick="saveCycle()">+ Save Cycle</button>
+</div>
+
+<!-- Subject header -->
+<div class="card">
+  <div class="card-title">Subject</div>
+  <div class="g4">
+    <div class="f"><label>Protocol</label><input id="protocol" type="text" placeholder="e.g. INX-315-01"></div>
+    <div class="f"><label>PI</label><input id="pi" type="text" placeholder="Last name"></div>
+    <div class="f"><label>Subject ID</label><input id="subjectId" type="text" placeholder="001-001" oninput="markDirty()"></div>
+    <div class="f"><label>Initials</label><input id="initials" type="text" placeholder="J.D." maxlength="6"></div>
+  </div>
+</div>
+
+<!-- Cycle -->
+<div class="card">
+  <div class="card-title">Cycle</div>
+  <div class="g4">
+    <div class="f">
+      <label>Cycle</label>
+      <select id="cycleNum" onchange="calc()">
+        <option value="">—</option>
+        <script>for(let i=1;i<=20;i++)document.write(`<option value="${i}">C${i}</option>`)</script>
+      </select>
+    </div>
+    <div class="f">
+      <label>Day</label>
+      <select id="cycleDay" onchange="calc()">
+        <option value="D1">D1</option>
+        <option value="D-2">D-2</option>
+        <option value="D-1">D-1</option>
+        <option value="D8">D8</option>
+        <option value="D15">D15</option>
+        <option value="D22">D22</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+    <div class="f"><label>Visit Date</label><input id="visitDate" type="date" onchange="calc()"></div>
+    <div class="f"><label>Prev Visit Date</label><input id="prevVisit" type="date" onchange="calc()"></div>
+  </div>
+  <div class="g3" style="margin-top:10px;">
+    <div class="f">
+      <label>Dose / Regimen</label>
+      <select id="dose" onchange="calc()">
+        <option value="150_bid">150mg BID — 6/day</option>
+        <option value="100_bid">100mg BID — 4/day</option>
+        <option value="50_bid">50mg BID — 2/day</option>
+        <option value="150_qd">150mg QD — 3/day</option>
+        <option value="100_qd">100mg QD — 2/day</option>
+        <option value="50_qd">50mg QD — 1/day</option>
+      </select>
+    </div>
+    <div class="f"><label>Bottles Dispensed</label>
+      <input id="bottles" type="number" min="0" max="10" value="3" oninput="calc()"></div>
+    <div class="f"><label>Pills Dispensed</label>
+      <input id="pillsDisp" type="number" readonly></div>
+  </div>
+  <div class="f" style="margin-top:8px;">
+    <label>Window (±days)</label>
+    <input id="window" type="number" value="3" min="0" max="14" style="max-width:100px;" oninput="calc()">
+  </div>
+</div>
+
+<!-- Diary -->
+<div class="card">
+  <div class="card-title">Pill Diary</div>
+  <div class="g4">
+    <div class="f"><label>Dosing Start</label><input id="dStart" type="date" onchange="calc()"></div>
+    <div class="f"><label>Dosing End</label><input id="dEnd" type="date" onchange="calc()"></div>
+    <div class="f"><label>Days on Drug</label><input id="days" type="number" readonly></div>
+    <div class="f"><label>Raw Expected</label><input id="rawExp" type="number" readonly></div>
+  </div>
+</div>
+
+<!-- Adjustments -->
+<div class="card">
+  <div class="card-title">Dose Adjustments <span style="color:var(--muted);font-weight:400;">(optional)</span></div>
+  <div id="adj-rows"></div>
+  <button class="btn-add" onclick="addAdj()">+ Add Adjustment</button>
+</div>
+
+<!-- Return -->
+<div class="card">
+  <div class="card-title">Return</div>
+  <div class="g3">
+    <div class="f"><label>Pills Returned</label>
+      <input id="returned" type="number" min="0" placeholder="Count" oninput="calc()"></div>
+    <div class="f"><label>Diary Reviewed?</label>
+      <select id="diary" onchange="calc()">
+        <option value="yes">Yes</option>
+        <option value="no">No</option>
+        <option value="partial">Partial</option>
+      </select>
+    </div>
+    <div class="f"><label>Discrepancy Note</label>
+      <input id="discNote" type="text" placeholder="Leave blank if none"></div>
+  </div>
+</div>
+
+<!-- Summary -->
+<div class="card" id="summary-card">
+  <div class="card-title">Reconciliation</div>
+  <div class="out-grid">
+    <div class="out-box">
+      <div class="out-lbl">Dispensed</div>
+      <div class="out-val" id="o-disp">—</div>
+      <div class="out-sub" id="o-disp-sub"></div>
+    </div>
+    <div class="out-box">
+      <div class="out-lbl">Exp. Return</div>
+      <div class="out-val" id="o-expret">—</div>
+      <div class="out-sub" id="o-expret-sub"></div>
+    </div>
+    <div class="out-box">
+      <div class="out-lbl">Returned</div>
+      <div class="out-val" id="o-ret">—</div>
+      <div class="out-sub" id="o-ret-sub"></div>
+    </div>
+    <div class="out-box">
+      <div class="out-lbl">Delta</div>
+      <div class="out-val" id="o-delta">—</div>
+      <div class="out-sub" id="o-delta-sub"></div>
+    </div>
+  </div>
+
+  <div class="comp-row">
+    <div>
+      <div class="comp-pct" id="comp-pct" style="color:var(--muted)">—</div>
+      <div style="font-size:9px;color:var(--muted);margin-top:2px;">compliance</div>
+      <div class="comp-bar-bg" style="width:120px;">
+        <div class="comp-bar-fill" id="comp-bar" style="width:0%;background:var(--ok)"></div>
+      </div>
+    </div>
+    <div class="comp-detail" id="comp-detail">Enter dates and return count.</div>
+  </div>
+
+  <div class="flags" id="flags"></div>
+
+  <div class="transcription" id="transcription" style="display:none"></div>
+</div>
+
+<div class="action-row">
+  <button class="btn btn-primary" onclick="calc()">Calculate</button>
+  <button class="btn btn-secondary" onclick="clearCycle()">Clear</button>
+  <button class="btn btn-secondary" onclick="exportCSV()">CSV</button>
+  <button class="btn btn-secondary" onclick="printRow()">Print Row</button>
+</div>
+
+<!-- History -->
+<div id="history-panel" style="display:none">
+  <div class="card-title" id="history-title">Cycle History</div>
+  <div style="overflow-x:auto">
+    <table class="htable">
+      <thead><tr>
+        <th>Cycle</th>
+        <th>Date Disp.</th>
+        <th>Qty Disp.</th>
+        <th>Pills/day</th>
+        <th>Date Ret.</th>
+        <th>Days</th>
+        <th>Qty Ret.</th>
+        <th>Qty Exp. Ret.</th>
+        <th>A</th>
+        <th>B</th>
+        <th>%</th>
+        <th>Missed</th>
+        <th>Notes</th>
+      </tr></thead>
+      <tbody id="htbody"></tbody>
+    </table>
+  </div>
+  <div id="trans-hint" style="margin-top:8px;display:none"
+    class="transcription"></div>
+</div>
+
+</div><!-- /page -->
+<script>
+// ── Constants ──────────────────────────────────────────
+const BOTTLE = 60;
+const DOSES = {
+  '150_bid':{ppd:3,dpd:2,ppday:6,label:'150mg BID',freq:'Twice per day (BID)'},
+  '100_bid':{ppd:2,dpd:2,ppday:4,label:'100mg BID',freq:'Twice per day (BID)'},
+  '50_bid': {ppd:1,dpd:2,ppday:2,label:'50mg BID', freq:'Twice per day (BID)'},
+  '150_qd': {ppd:3,dpd:1,ppday:3,label:'150mg QD', freq:'Daily (QD)'},
+  '100_qd': {ppd:2,dpd:1,ppday:2,label:'100mg QD', freq:'Daily (QD)'},
+  '50_qd':  {ppd:1,dpd:1,ppday:1,label:'50mg QD',  freq:'Daily (QD)'},
+};
+const ADJ_REASONS = [
+  {v:'late_dispense', l:'Late dispense / Day 1 partial', def:'denom'},
+  {v:'vomited',       l:'Vomited / unable to take',      def:'denom'},
+  {v:'dropped',       l:'Dropped / unusable pill',       def:'denom'},
+  {v:'forgotten',     l:'Forgotten dose',                def:'comp'},
+  {v:'drug_held',     l:'Drug held — AE / toxicity',     def:'denom'},
+  {v:'neutropenia',   l:'Drug held — neutropenia',       def:'denom'},
+  {v:'surgery',       l:'Drug held — surgery',           def:'denom'},
+  {v:'dlt',           l:'Drug held — DLT',               def:'denom'},
+  {v:'site_hold',     l:'Site-directed hold',            def:'denom'},
+  {v:'dose_reduction',l:'Dose reduction',                def:'denom'},
+  {v:'other',         l:'Other (see note)',              def:'denom'},
+];
+
+let adjIdx = 0;
+let record = null;
+
+// ── Adjustment rows ────────────────────────────────────
+function addAdj(preset={}) {
+  adjIdx++;
+  const id = 'a'+adjIdx;
+  const defReason = preset.reason || 'late_dispense';
+  const defImpact = preset.impact || ADJ_REASONS.find(r=>r.v===defReason)?.def || 'denom';
+  const defPills  = preset.pills  || '';
+  const defNote   = preset.note   || '';
+
+  const div = document.createElement('div');
+  div.className = 'adj-row'; div.dataset.id = id;
+  div.innerHTML = `
+    <select class="ar" onchange="onAdjChange(this);calc()">
+      ${ADJ_REASONS.map(r=>`<option value="${r.v}" ${r.v===defReason?'selected':''}>${r.l}</option>`).join('')}
+      <option value="_sep" disabled>──────────</option>
+      <option value="_note">Free text only</option>
+    </select>
+    <input class="ap" type="number" min="1" value="${defPills}"
+      placeholder="Pills" oninput="calc()" style="max-width:80px;">
+    <select class="ai" onchange="calc()" title="Impact on compliance">
+      <option value="denom" ${defImpact==='denom'?'selected':''}>Denom adj</option>
+      <option value="comp"  ${defImpact==='comp' ?'selected':''}>Comp miss</option>
+    </select>
+    <button class="del-btn" onclick="this.closest('.adj-row').remove();calc()">×</button>`;
+
+  // Add free text note row beneath
+  const noteDiv = document.createElement('div');
+  noteDiv.dataset.noteFor = id;
+  noteDiv.style.cssText = 'margin-bottom:6px;';
+  noteDiv.innerHTML = `<input type="text" placeholder="Note / reason (optional)"
+    value="${defNote}" oninput="calc()"
+    style="font-size:11px;padding:4px 7px;width:100%;">`;
+
+  const container = document.getElementById('adj-rows');
+  container.appendChild(div);
+  container.appendChild(noteDiv);
+  calc();
+}
+
+function onAdjChange(sel) {
+  const row  = sel.closest('.adj-row');
+  const imp  = row.querySelector('.ai');
+  const match = ADJ_REASONS.find(r=>r.v===sel.value);
+  if (match) imp.value = match.def;
+}
+
+function getAdjs() {
+  const rows = document.querySelectorAll('.adj-row[data-id]');
+  return [...rows].map(row => {
+    const id    = row.dataset.id;
+    const note  = document.querySelector(`[data-note-for="${id}"] input`)?.value || '';
+    return {
+      reason: row.querySelector('.ar').value,
+      pills:  parseInt(row.querySelector('.ap').value) || 0,
+      impact: row.querySelector('.ai').value,
+      note,
+    };
+  });
+}
+
+// ── Core calc ──────────────────────────────────────────
+function calc() {
+  const dose    = DOSES[document.getElementById('dose').value];
+  const bottles = parseInt(document.getElementById('bottles').value) || 0;
+  const disp    = bottles * BOTTLE;
+  document.getElementById('pillsDisp').value = disp;
+
+  // Diary
+  const s = document.getElementById('dStart').value;
+  const e = document.getElementById('dEnd').value;
+  let days = null, rawExp = null;
+  if (s && e) {
+    const d = Math.round((new Date(e)-new Date(s))/86400000)+1;
+    if (d > 0) { days = d; rawExp = d * dose.ppday; }
+  }
+  setV('days',    days   ?? '');
+  setV('rawExp',  rawExp ?? '');
+
+  // Adjustments
+  const adjs = getAdjs();
+  let denomAdj = 0;
+  adjs.forEach(a => { if (a.impact==='denom') denomAdj += a.pills; });
+  const adjExp = rawExp !== null ? Math.max(0, rawExp - denomAdj) : null;
+
+  // Return
+  const retStr = document.getElementById('returned').value;
+  const ret    = retStr !== '' ? parseInt(retStr) : null;
+  const taken  = ret !== null ? disp - ret : null;
+  const expRet = adjExp !== null ? disp - adjExp : null;
+  const delta  = taken !== null && adjExp !== null ? taken - adjExp : null;
+  const comp   = taken !== null && adjExp !== null && adjExp > 0
+    ? Math.round(taken/adjExp*100) : null;
+  const missed = delta !== null && delta < 0 ? Math.abs(delta) : 0;
+
+  // Outputs
+  setText('o-disp', disp || '—');
+  setText('o-disp-sub', bottles ? `${bottles}×60` : '');
+
+  setText('o-expret', expRet ?? '—');
+  const expRetSub = adjExp !== null
+    ? (denomAdj>0 ? `${disp}−${adjExp}` : `${disp}−${adjExp}`) : '';
+  setText('o-expret-sub', expRetSub);
+
+  setText('o-ret', ret ?? '—');
+  setText('o-ret-sub', expRet !== null && ret !== null
+    ? (ret===expRet ? '✓ exact' : ret > expRet ? `+${ret-expRet}` : `${ret-expRet}`) : '');
+  setColor('o-ret', ret !== null && expRet !== null
+    ? (ret===expRet?'var(--ok)':'var(--err)') : 'var(--text)');
+
+  if (delta !== null) {
+    const sign = delta>0?'+':'';
+    setText('o-delta', `${sign}${delta}`);
+    setText('o-delta-sub', delta===0?'exact':delta>0?'excess':'deficit');
+    setColor('o-delta', delta===0?'var(--ok)':delta>0?'var(--warn)':'var(--err)');
+  } else {
+    setText('o-delta','—'); setText('o-delta-sub',''); setColor('o-delta','var(--text)');
+  }
+
+  // Compliance
+  const pctEl = document.getElementById('comp-pct');
+  const barEl = document.getElementById('comp-bar');
+  const detEl = document.getElementById('comp-detail');
+  if (comp !== null) {
+    const col = comp>=80?'var(--ok)':comp>=60?'var(--warn)':'var(--err)';
+    pctEl.textContent = comp+'%'; pctEl.style.color = col;
+    barEl.style.width = Math.min(100,Math.max(0,comp))+'%';
+    barEl.style.background = col;
+    let det = `Taken  : ${taken}  (${disp}−${ret})\nExpected: ${adjExp}  (${days}d×${dose.ppday}/day`;
+    if (denomAdj>0) det += `−${denomAdj} adj`;
+    det += `)\nComp   : ${taken}÷${adjExp}×100 = ${comp}%`;
+    detEl.textContent = det;
+  } else {
+    pctEl.textContent='—'; pctEl.style.color='var(--muted)';
+    barEl.style.width='0%';
+    detEl.textContent='Enter dates and return count.';
+  }
+
+  // Flags
+  const flags = [], notes = [];
+  const vd = document.getElementById('visitDate').value;
+  const pv = document.getElementById('prevVisit').value;
+  const win = parseInt(document.getElementById('window').value)||3;
+  if (vd && pv) {
+    const cd = Math.round((new Date(vd)-new Date(pv))/86400000);
+    if      (cd < 28-win) { flags.push({c:'warn',t:`SHORT: ${cd}d`}); notes.push(`Cycle ${cd}d below ${28-win}d floor.`); }
+    else if (cd > 28+win) { flags.push({c:'err', t:`LONG: ${cd}d`});  notes.push(`Cycle ${cd}d above ${28+win}d ceiling.`); }
+    else                   { flags.push({c:'ok',  t:`${cd}d ✓`}); }
+  }
+  if (delta !== null) {
+    if      (delta===0) flags.push({c:'ok',  t:'COUNT ✓'});
+    else if (delta> 0)  { flags.push({c:'warn',t:`+${delta} EXCESS`});  notes.push(`${delta} more pills taken than expected.`); }
+    else                { flags.push({c:'err', t:`${delta} DEFICIT`});  notes.push(`${Math.abs(delta)} fewer pills than expected. Counsel subject.`); }
+  }
+  if (comp!==null) {
+    if      (comp<80)  { flags.push({c:'err', t:`LOW: ${comp}%`}); notes.push(`Compliance ${comp}% below 80%.`); }
+    else if (comp<100) { flags.push({c:'warn',t:`${comp}%`}); }
+  }
+  if (denomAdj>0) flags.push({c:'info',t:`${denomAdj} EXCUSED`});
+  if (document.getElementById('diary').value==='no') flags.push({c:'warn',t:'DIARY NOT REVIEWED'});
+
+  document.getElementById('flags').innerHTML =
+    flags.map(f=>`<span class="flag ${f.c}">${f.t}</span>`).join('');
+
+  // Transcription
+  buildTranscription(disp, days, dose.ppday, ret, taken, adjExp, expRet, comp, missed, notes);
+
+  if (record) markDirty();
+}
+
+function buildTranscription(disp, days, ppday, ret, taken, adjExp, expRet, comp, missed, notes) {
+  const el = document.getElementById('transcription');
+  if (!disp && !days) { el.style.display='none'; return; }
+  el.style.display='';
+  const cyc  = getCycleLabel();
+  const vd   = document.getElementById('visitDate').value;
+  const rd   = document.getElementById('dEnd').value;
+  const A    = taken  ?? '?';
+  const B    = adjExp ?? '?';
+  const Aeq  = (disp && ret!=null) ? `${disp}−${ret}=${A}` : A;
+  const Beq  = (days && ppday)     ? `${days}×${ppday}=${B}` : B;
+  const pct  = comp != null ? `${A}/${B}×100=${comp}%` : '—';
+  const disc = document.getElementById('discNote').value;
+
+  el.innerHTML = `<span class="t-label">→ SmartPhrase row (left to right)
+</span>Cycle        ${cyc}
+Date Disp.   ${vd ? fmtDate(vd) : '—'}
+Qty Disp.    ${disp || '—'}
+#Pills/day   ${ppday}
+Date Ret.    ${rd  ? fmtDate(rd)  : '—'}
+#Days        ${days ?? '—'}
+Qty Ret.     ${ret  ?? '—'}
+Qty Exp.     ${expRet ?? '—'}
+A            ${Aeq}
+B            ${Beq}
+% Comp.      ${pct}
+Qty Missed   ${missed || 0}
+Comments     ${[...notes, disc].filter(Boolean).join('; ') || ''}`;
+}
+
+function getCycleLabel() {
+  const c = document.getElementById('cycleNum').value;
+  const d = document.getElementById('cycleDay').value;
+  return c ? `C${c}${d||''}` : '—';
+}
+
+// ── Record management ──────────────────────────────────
+function snapshotCycle() {
+  const dose = DOSES[document.getElementById('dose').value];
+  const bottles = parseInt(document.getElementById('bottles').value)||0;
+  const disp = bottles*BOTTLE;
+  const s = document.getElementById('dStart').value;
+  const e = document.getElementById('dEnd').value;
+  let days=null;
+  if(s&&e){const d=Math.round((new Date(e)-new Date(s))/86400000)+1;if(d>0)days=d;}
+  const adjs = getAdjs();
+  let denomAdj=0;
+  adjs.forEach(a=>{if(a.impact==='denom')denomAdj+=a.pills;});
+  const adjExp = days!==null?Math.max(0,days*dose.ppday-denomAdj):null;
+  const retStr = document.getElementById('returned').value;
+  const ret    = retStr!==''?parseInt(retStr):null;
+  const taken  = ret!==null?disp-ret:null;
+  const expRet = adjExp!==null?disp-adjExp:null;
+  const delta  = taken!==null&&adjExp!==null?taken-adjExp:null;
+  const comp   = taken!==null&&adjExp!==null&&adjExp>0?Math.round(taken/adjExp*100):null;
+  const missed = delta!==null&&delta<0?Math.abs(delta):0;
+  return {
+    cycleNum: document.getElementById('cycleNum').value,
+    cycleDay: document.getElementById('cycleDay').value,
+    cycleLabel: getCycleLabel(),
+    visitDate: document.getElementById('visitDate').value,
+    prevVisit: document.getElementById('prevVisit').value,
+    window: parseInt(document.getElementById('window').value)||3,
+    doseKey: document.getElementById('dose').value,
+    doseLabel: dose.label,
+    ppday: dose.ppday,
+    bottles, disp,
+    dosingStart: s, dosingEnd: e, days,
+    returned: ret,
+    returnDate: e,
+    diaryReviewed: document.getElementById('diary').value,
+    discNote: document.getElementById('discNote').value,
+    adjustments: adjs,
+    computed: {disp,adjExp,expRet,taken,delta,comp,missed,denomAdj},
+  };
+}
+
+function saveCycle() {
+  if (!record) { alert('Load or save a record first.'); return; }
+  const snap = snapshotCycle();
+  const idx  = record.cycles.findIndex(c=>c.cycleLabel===snap.cycleLabel && snap.cycleLabel!=='—');
+  if (idx>=0) {
+    if (!confirm(`${snap.cycleLabel} already saved. Replace?`)) return;
+    record.cycles[idx] = snap;
+  } else {
+    record.cycles.push(snap);
+  }
+  record.cycles.sort((a,b)=>{
+    const an=parseInt(a.cycleNum)||99, bn=parseInt(b.cycleNum)||99;
+    return an!==bn ? an-bn : (a.cycleDay||'').localeCompare(b.cycleDay||'');
+  });
+  renderHistory();
+  saveRecord();
+}
+
+function saveRecord() {
+  const subj = document.getElementById('subjectId').value;
+  if (!subj) { alert('Enter Subject ID before saving.'); return; }
+  if (!record) {
+    record = {version:2, protocol:'', pi:'', subject:'', initials:'', cycles:[]};
+  }
+  record.protocol = document.getElementById('protocol').value;
+  record.pi        = document.getElementById('pi').value;
+  record.subject   = subj;
+  record.initials  = document.getElementById('initials').value;
+
+  const json = JSON.stringify(record,null,2);
+  const blob = new Blob([json],{type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const fn   = `${subj.replace(/[^a-z0-9]/gi,'-')}_${(record.protocol||'noprot').replace(/[^a-z0-9]/gi,'-')}_acct.json`;
+  a.href=url; a.download=fn; a.click();
+  URL.revokeObjectURL(url);
+  setStatus('saved');
+}
+
+function loadRecord(ev) {
+  const file = ev.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const r = JSON.parse(e.target.result);
+      if (!r.subject) throw new Error('Missing subject field');
+      record = r;
+      document.getElementById('protocol').value  = r.protocol  || '';
+      document.getElementById('pi').value         = r.pi        || '';
+      document.getElementById('subjectId').value  = r.subject   || '';
+      document.getElementById('initials').value   = r.initials  || '';
+      // Pre-fill next cycle number
+      if (r.cycles?.length) {
+        const last = r.cycles[r.cycles.length-1];
+        const nextN = (parseInt(last.cycleNum)||0)+1;
+        if (nextN<=20) document.getElementById('cycleNum').value = nextN;
+      }
+      renderHistory();
+      setStatus('loaded');
+    } catch(err) { alert('Could not load: '+err.message); }
+    ev.target.value='';
+  };
+  reader.readAsText(file);
+}
+
+function setStatus(state) {
+  const el  = document.getElementById('rec-status');
+  const btn = document.getElementById('btn-add-cycle');
+  if (state==='loaded') {
+    el.textContent = `✓ ${record.subject}${record.protocol?' — '+record.protocol:''} (${record.cycles.length} cycle${record.cycles.length!==1?'s':''})`;
+    el.className='loaded'; btn.style.display='';
+  } else if (state==='dirty') {
+    el.textContent = `● Unsaved — ${record.subject||'?'}`;
+    el.className='dirty'; btn.style.display='';
+  } else if (state==='saved') {
+    el.textContent = `✓ Saved — ${record.subject}${record.protocol?' — '+record.protocol:''} (${record.cycles.length} cycle${record.cycles.length!==1?'s':''})`;
+    el.className='loaded'; btn.style.display='';
+  }
+}
+
+function markDirty() { if(record) setStatus('dirty'); }
+
+function renderHistory() {
+  if (!record?.cycles.length) { document.getElementById('history-panel').style.display='none'; return; }
+  document.getElementById('history-panel').style.display='';
+  document.getElementById('history-title').textContent =
+    `Cycle History — ${record.subject}${record.initials?' ('+record.initials+')':''}`+
+    `${record.protocol?' — '+record.protocol:''}`;
+
+  const tbody = document.getElementById('htbody');
+  tbody.innerHTML = '';
+  record.cycles.forEach(c => {
+    const cm  = c.computed||{};
+    const pct = cm.comp;
+    const cls = pct==null?'':(pct>=80?'c-ok':pct>=60?'c-warn':'c-err');
+    const A   = cm.taken??'—', B = cm.adjExp??'—';
+    const Aeq = (cm.disp!=null&&c.returned!=null)?`${cm.disp}−${c.returned}=${A}`:A;
+    const Beq = (c.days&&c.ppday)?`${c.days}×${c.ppday}=${B}`:B;
+    const tr  = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${c.cycleLabel||'—'}</td>
+      <td>${c.visitDate?fmtDate(c.visitDate):'—'}</td>
+      <td>${cm.disp??'—'}</td>
+      <td>${c.ppday??'—'}</td>
+      <td>${c.returnDate?fmtDate(c.returnDate):'—'}</td>
+      <td>${c.days??'—'}</td>
+      <td>${c.returned??'—'}</td>
+      <td>${cm.expRet??'—'}</td>
+      <td>${Aeq}</td>
+      <td>${Beq}</td>
+      <td class="${cls}">${pct!=null?pct+'%':'—'}</td>
+      <td>${cm.missed??'—'}</td>
+      <td>${c.discNote||''}</td>`;
+    tbody.appendChild(tr);
+  });
+
+  // Transcription hint for last cycle
+  const last = record.cycles[record.cycles.length-1];
+  const cm   = last.computed||{};
+  const hint = document.getElementById('trans-hint');
+  hint.style.display='';
+  const A   = cm.taken??'?', B = cm.adjExp??'?';
+  const Aeq = (cm.disp!=null&&last.returned!=null)?`${cm.disp}−${last.returned}=${A}`:A;
+  const Beq = (last.days&&last.ppday)?`${last.days}×${last.ppday}=${B}`:B;
+  hint.innerHTML = `<span class="t-label">→ Last cycle (${last.cycleLabel}) SmartPhrase row
+</span>Cycle  ${last.cycleLabel}   Date Disp. ${last.visitDate?fmtDate(last.visitDate):'—'}   Qty Disp. ${cm.disp??'—'}   #Pills/day ${last.ppday??'—'}
+Date Ret. ${last.returnDate?fmtDate(last.returnDate):'—'}   #Days ${last.days??'—'}   Qty Ret. ${last.returned??'—'}   Qty Exp. ${cm.expRet??'—'}
+A: ${Aeq}   B: ${Beq}   % ${cm.comp!=null?cm.comp+'%':'—'}   Missed ${cm.missed??'—'}   ${last.discNote||''}`;
+}
+
+// ── Export CSV ─────────────────────────────────────────
+function exportCSV() {
+  if (!record?.cycles.length) { alert('No cycles to export.'); return; }
+  const hdr = ['Subject','Protocol','Cycle','Visit Date','Prev Visit',
+    'Dose','Pills/Day','Bottles','Qty Disp','Dosing Start','Dosing End','Days',
+    'Returned','Qty Exp Return','A (Taken)','B (Exp Taken)',
+    'Delta','% Comp','Missed','Diary','Adjustments','Notes'];
+  const rows = record.cycles.map(c=>{
+    const cm=c.computed||{};
+    const adjStr=(c.adjustments||[]).map(a=>`${a.reason}:${a.pills}(${a.impact})${a.note?'/'+a.note:''}`).join('; ');
+    return [record.subject,record.protocol,c.cycleLabel,c.visitDate,c.prevVisit,
+      c.doseLabel,c.ppday,c.bottles,cm.disp,c.dosingStart,c.dosingEnd,c.days,
+      c.returned,cm.expRet,cm.taken,cm.adjExp,cm.delta,
+      cm.comp!=null?cm.comp+'%':'',cm.missed,c.diaryReviewed,adjStr,c.discNote]
+      .map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',');
+  });
+  const blob=new Blob([[hdr.join(','),...rows].join('\n')],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`${(record.subject||'export').replace(/[^a-z0-9]/gi,'-')}_acct.csv`;
+  a.click();URL.revokeObjectURL(url);
+}
+
+// ── Print row ──────────────────────────────────────────
+function printRow() {
+  const t = document.getElementById('transcription');
+  if (!t || t.style.display==='none') { alert('Calculate first.'); return; }
+  const w = window.open('','_blank');
+  w.document.write(`<pre style="font-family:monospace;font-size:13px;padding:24px;background:#fff;color:#000;">${t.innerText}</pre>`);
+  w.document.close(); w.print();
+}
+
+// ── Clear ──────────────────────────────────────────────
+function clearCycle() {
+  if (!confirm('Clear current cycle? Record history is preserved.')) return;
+  ['visitDate','prevVisit','dStart','dEnd','returned','discNote']
+    .forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('cycleNum').value='';
+  document.getElementById('cycleDay').value='D1';
+  document.getElementById('dose').value='150_bid';
+  document.getElementById('bottles').value=3;
+  document.getElementById('diary').value='yes';
+  document.getElementById('adj-rows').innerHTML='';
+  adjIdx=0;
+  if (record) {
+    document.getElementById('protocol').value=record.protocol||'';
+    document.getElementById('pi').value=record.pi||'';
+    document.getElementById('subjectId').value=record.subject||'';
+    document.getElementById('initials').value=record.initials||'';
+  }
+  calc();
+}
+
+// ── Helpers ────────────────────────────────────────────
+function setText(id,v) { const el=document.getElementById(id); if(el) el.textContent=v??'—'; }
+function setColor(id,c){ const el=document.getElementById(id); if(el) el.style.color=c; }
+function setV(id,v)    { const el=document.getElementById(id); if(el) el.value=v; }
+function fmtDate(ds) {
+  if (!ds) return '—';
+  const d = new Date(ds+'T00:00:00');
+  return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})
+           .toUpperCase().replace(/ /g,'-');
+}
+
+// ── Theme ──────────────────────────────────────────────
+function toggleTheme() {
+  const light = document.body.classList.toggle('light');
+  document.getElementById('theme-btn').textContent = light ? '🌙 Dark' : '☀ Light';
+  document.getElementById('theme-color-meta').setAttribute('content', light?'#f5f7fa':'#0f1117');
+  localStorage.setItem('dal-theme', light?'light':'dark');
+}
+(function(){
+  if (localStorage.getItem('dal-theme')==='light') {
+    document.body.classList.add('light');
+    document.addEventListener('DOMContentLoaded',()=>{
+      const b=document.getElementById('theme-btn'); if(b) b.textContent='🌙 Dark';
+    });
+  }
+})();
+
+// ── Service worker ─────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+
+// Init
+window.onload = calc;
+</script>
+</body>
+</html>
